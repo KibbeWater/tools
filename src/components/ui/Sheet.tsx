@@ -21,7 +21,7 @@ export function Sheet({
   description,
   children,
   footer,
-  widthClass = 'w-[min(440px,100vw)]',
+  widthClass = 'w-[min(460px,100vw)]',
 }: SheetProps) {
   const reduced = useReducedMotion();
 
@@ -44,58 +44,72 @@ export function Sheet({
       {open && (
         <motion.div
           key="sheet-root"
-          className="fixed inset-0 z-50"
+          className="fixed inset-0"
+          style={{ zIndex: 'var(--z-sheet)' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: reduced ? 0 : 0.18 }}
+          transition={{ duration: reduced ? 0 : 0.2 }}
         >
           <div
             onClick={onClose}
-            className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-[oklch(0.08_0.01_60_/_0.7)] backdrop-blur-[3px]"
             aria-hidden
           />
           <motion.aside
             role="dialog"
             aria-modal
-            initial={{ x: reduced ? 0 : 32, opacity: 0 }}
+            initial={{ x: reduced ? 0 : 40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: reduced ? 0 : 32, opacity: 0 }}
+            exit={{ x: reduced ? 0 : 40, opacity: 0 }}
             transition={{
               type: 'spring',
-              stiffness: 480,
+              stiffness: 460,
               damping: 42,
-              mass: 0.8,
+              mass: 0.85,
             }}
             className={cn(
-              'absolute top-0 right-0 h-full bg-[var(--color-bg-raised)] border-l border-[var(--color-border)] shadow-2xl flex flex-col',
+              'absolute top-0 right-0 h-full bg-[var(--color-bg-raised)] border-l border-[var(--color-border)] flex flex-col',
+              'shadow-[-24px_0_64px_-24px_oklch(0_0_0_/_0.6)]',
               widthClass,
             )}
             style={{ viewTransitionName: 'sheet' }}
           >
-            <header className="flex items-start justify-between gap-4 p-4 border-b border-[var(--color-border)]">
+            {/* Top accent hairline */}
+            <span
+              aria-hidden
+              className="absolute inset-x-0 top-0 h-px"
+              style={{
+                background:
+                  'linear-gradient(90deg, transparent, var(--color-accent-amber), transparent)',
+                opacity: 0.5,
+              }}
+            />
+            <header className="flex items-start justify-between gap-4 p-5 border-b border-[var(--color-border)]">
               <div className="min-w-0 flex-1">
                 {title && (
-                  <h2 className="text-[15px] font-semibold text-[var(--color-fg)] leading-tight truncate">
+                  <h2 className="text-[15.5px] font-semibold text-[var(--color-fg)] leading-tight tracking-[-0.005em]">
                     {title}
                   </h2>
                 )}
                 {description && (
-                  <p className="text-[12px] text-[var(--color-fg-muted)] mt-1">{description}</p>
+                  <p className="text-[12.5px] text-[var(--color-fg-muted)] mt-1.5 leading-relaxed">
+                    {description}
+                  </p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 -m-1.5 rounded-[var(--radius-sm)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface)]"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface)] transition-colors"
                 aria-label="Close"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </header>
-            <div className="flex-1 overflow-y-auto p-4">{children}</div>
+            <div className="flex-1 overflow-y-auto p-5">{children}</div>
             {footer && (
-              <footer className="p-3 border-t border-[var(--color-border)] flex items-center justify-end gap-2 bg-[var(--color-bg)]">
+              <footer className="p-3.5 border-t border-[var(--color-border)] flex items-center justify-end gap-2 bg-[var(--color-bg)]/60">
                 {footer}
               </footer>
             )}

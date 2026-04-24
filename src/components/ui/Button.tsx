@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent';
 type Size = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,26 +12,28 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'inline-flex items-center justify-center gap-2 select-none rounded-[var(--radius-sm)] font-medium ' +
-  'transition-[background-color,border-color,transform,opacity] duration-150 ' +
-  'disabled:opacity-50 disabled:pointer-events-none ' +
-  'border border-transparent active:scale-[0.98]';
+  'relative inline-flex items-center justify-center gap-2 select-none rounded-full font-semibold ' +
+  'transition-[background-color,border-color,transform,opacity,box-shadow] duration-150 ' +
+  'disabled:opacity-40 disabled:pointer-events-none ' +
+  'border border-transparent active:scale-[0.97] whitespace-nowrap';
 
 const sizes: Record<Size, string> = {
-  sm: 'h-7 px-2.5 text-[12px]',
-  md: 'h-8 px-3 text-[13px]',
-  lg: 'h-10 px-4 text-[14px]',
+  sm: 'h-7 px-3 text-[12px]',
+  md: 'h-9 px-3.5 text-[13px]',
+  lg: 'h-11 px-5 text-[14px]',
 };
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-[var(--color-fg)] text-[var(--color-bg)] hover:bg-[oklch(0.93_0_0)]',
+    'bg-[var(--color-fg)] text-[var(--color-bg)] hover:bg-white shadow-[0_1px_0_oklch(1_0_0_/0.4)_inset,0_8px_24px_-12px_oklch(0_0_0_/_0.6)]',
+  accent:
+    'text-[oklch(0.18_0.012_60)] bg-gradient-to-br from-[var(--color-accent-amber)] via-[var(--color-accent-orange)] to-[var(--color-accent-pink)] hover:brightness-110 shadow-[var(--shadow-glow-amber)]',
   secondary:
     'bg-[var(--color-surface)] text-[var(--color-fg)] border-[var(--color-border)] hover:bg-[var(--color-surface-hi)] hover:border-[var(--color-border-hi)]',
   ghost:
     'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface)]',
   danger:
-    'bg-[oklch(0.38_0.18_25)] text-[oklch(0.97_0_0)] hover:bg-[oklch(0.44_0.19_25)]',
+    'bg-[color-mix(in_oklch,var(--color-danger)_22%,var(--color-bg))] text-[var(--color-danger)] border-[color-mix(in_oklch,var(--color-danger)_30%,transparent)] hover:bg-[color-mix(in_oklch,var(--color-danger)_30%,var(--color-bg))]',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

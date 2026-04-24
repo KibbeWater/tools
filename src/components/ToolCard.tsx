@@ -13,36 +13,80 @@ export function ToolCard({ tool, index }: ToolCardProps) {
   const accent = `var(--color-accent-${tool.accent})`;
   return (
     <motion.div
-      initial={{ y: 8, opacity: 0 }}
+      initial={{ y: 12, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: index * 0.04, duration: 0.28, ease: [0.2, 0, 0, 1] }}
+      transition={{ delay: index * 0.06, duration: 0.32, ease: [0.2, 0, 0, 1] }}
       style={{ viewTransitionName: `tool-card-${tool.id}` }}
+      className="group relative"
     >
+      <div
+        aria-hidden
+        className="absolute -inset-px rounded-[var(--radius-md)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{
+          background: `radial-gradient(60% 80% at 30% 0%, ${accent}, transparent 70%)`,
+          filter: 'blur(18px)',
+          opacity: 0,
+        }}
+      />
       <Link
         to={tool.path}
         viewTransition
-        className="group block rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 hover:border-[var(--color-border-hi)] hover:bg-[var(--color-surface-hi)] transition-[background-color,border-color,transform] active:scale-[0.995]"
+        className="relative block h-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 overflow-hidden transition-all duration-200 hover:border-[var(--color-border-hi)] hover:bg-[var(--color-surface-hi)] hover:-translate-y-0.5 active:translate-y-0"
       >
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div
-            className="h-9 w-9 rounded-[var(--radius-sm)] border border-[var(--color-border)] flex items-center justify-center"
-            style={{
-              background: `color-mix(in oklch, ${accent} 14%, transparent)`,
-              color: accent,
-              borderColor: `color-mix(in oklch, ${accent} 28%, transparent)`,
-            }}
-          >
-            <ToolIcon name={tool.iconName} size={17} />
+        {/* Shine sweep on hover */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{
+            background: `linear-gradient(115deg, transparent 35%, ${accent} 50%, transparent 65%)`,
+            mixBlendMode: 'overlay',
+            opacity: 0,
+            maskImage:
+              'linear-gradient(to bottom, black, transparent 70%)',
+          }}
+        />
+        {/* Top gradient hairline */}
+        <span
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-px"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
+            opacity: 0.5,
+          }}
+        />
+
+        <div className="flex items-start justify-between gap-3 mb-5">
+          <div className="relative">
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-[var(--radius-sm)] blur-md opacity-50 group-hover:opacity-90 transition-opacity"
+              style={{ background: accent }}
+            />
+            <div
+              className="relative h-11 w-11 rounded-[var(--radius-sm)] flex items-center justify-center"
+              style={{
+                background: `color-mix(in oklch, ${accent} 22%, var(--color-bg))`,
+                color: accent,
+                border: `1px solid color-mix(in oklch, ${accent} 38%, transparent)`,
+              }}
+            >
+              <ToolIcon name={tool.iconName} size={20} />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={tool.status} />
-            <ArrowUpRight
-              size={14}
-              className="text-[var(--color-fg-subtle)] group-hover:text-[var(--color-fg-muted)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform"
-            />
+            <span
+              className="h-7 w-7 rounded-full flex items-center justify-center border border-[var(--color-border)] bg-[var(--color-bg-raised)] text-[var(--color-fg-subtle)] group-hover:text-[var(--color-fg)] group-hover:border-[var(--color-border-hi)] transition-colors"
+            >
+              <ArrowUpRight
+                size={13}
+                className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform"
+              />
+            </span>
           </div>
         </div>
-        <h3 className="text-[14.5px] font-semibold text-[var(--color-fg)] mb-1 leading-snug">
+
+        <h3 className="text-[16px] font-semibold text-[var(--color-fg)] leading-tight tracking-[-0.005em] mb-1.5">
           {tool.name}
         </h3>
         <p className="text-[12.5px] text-[var(--color-fg-muted)] leading-relaxed">
@@ -54,18 +98,35 @@ export function ToolCard({ tool, index }: ToolCardProps) {
 }
 
 function StatusBadge({ status }: { status: ToolMeta['status'] }) {
-  const copy = { stable: 'Stable', beta: 'Beta', wip: 'WIP' }[status];
-  const color =
-    status === 'stable'
-      ? 'text-[oklch(0.78_0.14_150)]'
-      : status === 'beta'
-        ? 'text-[oklch(0.78_0.14_75)]'
-        : 'text-[var(--color-fg-subtle)]';
+  const map = {
+    stable: {
+      label: 'Stable',
+      color: 'var(--color-success)',
+    },
+    beta: {
+      label: 'Beta',
+      color: 'var(--color-accent-amber)',
+    },
+    wip: {
+      label: 'WIP',
+      color: 'var(--color-fg-subtle)',
+    },
+  } as const;
+  const { label, color } = map[status];
   return (
     <span
-      className={`text-[9.5px] font-semibold uppercase tracking-[0.08em] ${color} border border-[var(--color-border)] rounded-[3px] px-1.5 py-[1px]`}
+      className="inline-flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-[0.1em] px-1.5 py-[3px] rounded-full"
+      style={{
+        background: `color-mix(in oklch, ${color} 14%, transparent)`,
+        color,
+        border: `1px solid color-mix(in oklch, ${color} 24%, transparent)`,
+      }}
     >
-      {copy}
+      <span
+        className="inline-block h-1 w-1 rounded-full"
+        style={{ background: color }}
+      />
+      {label}
     </span>
   );
 }
