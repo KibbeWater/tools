@@ -1,0 +1,125 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --color-bg: oklch(0.15 0.005 260);
+  --color-bg-raised: oklch(0.17 0.005 260);
+  --color-surface: oklch(0.19 0.006 260);
+  --color-surface-hi: oklch(0.23 0.007 260);
+  --color-border: oklch(1 0 0 / 0.07);
+  --color-border-hi: oklch(1 0 0 / 0.14);
+  --color-fg: oklch(0.97 0 0);
+  --color-fg-muted: oklch(0.72 0 0);
+  --color-fg-subtle: oklch(0.55 0 0);
+
+  --color-accent-amber: oklch(0.76 0.15 75);
+  --color-accent-orange: oklch(0.74 0.18 55);
+  --color-accent-cyan: oklch(0.75 0.14 220);
+  --color-accent-violet: oklch(0.68 0.17 290);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-border-hi);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: oklch(0.68 0.17 290 / 0.35);
+  color: var(--color-fg);
+}
+
+/* ---------- Scrollbar ---------- */
+* {
+  scrollbar-color: oklch(1 0 0 / 0.08) transparent;
+  scrollbar-width: thin;
+}
+
+/* ---------- View Transitions ---------- */
+
+@supports (view-transition-name: x) {
+  ::view-transition-group(root) {
+    animation-duration: 280ms;
+    animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 220ms;
+    animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* Tool card → detail hero: shared-element morph */
+  ::view-transition-group(tool-hero) {
+    animation-duration: 420ms;
+    animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* Side sheet slide */
+  ::view-transition-group(sheet) {
+    animation-duration: 280ms;
+  }
+  ::view-transition-old(sheet) {
+    animation: sheet-slide-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  }
+  ::view-transition-new(sheet) {
+    animation: sheet-slide-in 300ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+
+  @keyframes sheet-slide-in {
+    from {
+      transform: translateX(24px);
+      opacity: 0;
+    }
+  }
+  @keyframes sheet-slide-out {
+    to {
+      transform: translateX(24px);
+      opacity: 0;
+    }
+  }
+
+  /* Tab panel cross-fade */
+  ::view-transition-old(tab-panel),
+  ::view-transition-new(tab-panel) {
+    animation-duration: 180ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.001ms !important;
+  }
+}
