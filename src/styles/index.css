@@ -3,28 +3,62 @@
 
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
 
-  --color-bg: oklch(0.15 0.005 260);
-  --color-bg-raised: oklch(0.17 0.005 260);
-  --color-surface: oklch(0.19 0.006 260);
-  --color-surface-hi: oklch(0.23 0.007 260);
-  --color-border: oklch(1 0 0 / 0.07);
-  --color-border-hi: oklch(1 0 0 / 0.14);
-  --color-fg: oklch(0.97 0 0);
-  --color-fg-muted: oklch(0.72 0 0);
-  --color-fg-subtle: oklch(0.55 0 0);
+  /* Warm-tinted greyscale — slight orange undertone keeps it from feeling sterile */
+  --color-bg: oklch(0.13 0.012 60);
+  --color-bg-raised: oklch(0.16 0.012 60);
+  --color-surface: oklch(0.185 0.013 60);
+  --color-surface-hi: oklch(0.225 0.014 60);
+  --color-border: oklch(1 0 0 / 0.06);
+  --color-border-hi: oklch(1 0 0 / 0.13);
+  --color-border-glow: oklch(0.78 0.16 65 / 0.45);
 
-  --color-accent-amber: oklch(0.76 0.15 75);
-  --color-accent-orange: oklch(0.74 0.18 55);
-  --color-accent-cyan: oklch(0.75 0.14 220);
-  --color-accent-violet: oklch(0.68 0.17 290);
+  --color-fg: oklch(0.98 0.005 90);
+  --color-fg-muted: oklch(0.74 0.012 80);
+  --color-fg-subtle: oklch(0.54 0.012 80);
+
+  /* Brand palette — warmer, more saturated than before */
+  --color-accent-amber: oklch(0.82 0.165 75);
+  --color-accent-orange: oklch(0.75 0.19 45);
+  --color-accent-pink: oklch(0.74 0.18 0);
+  --color-accent-cyan: oklch(0.78 0.14 215);
+  --color-accent-violet: oklch(0.72 0.18 295);
+  --color-accent-lime: oklch(0.84 0.17 130);
+
+  --color-success: oklch(0.78 0.16 145);
+  --color-danger: oklch(0.72 0.19 25);
 
   --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+
+  /* Semantic z-index scale — single source of truth for stacking */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-header: 30;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-sheet: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+  --z-cmdk: 90;
+
+  /* Shadows tuned for a dark, slightly warm canvas */
+  --shadow-soft: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 12px 32px -16px oklch(0 0 0 / 0.6);
+  --shadow-glow-amber: 0 0 0 1px oklch(0.82 0.165 75 / 0.18),
+    0 8px 32px -10px oklch(0.82 0.165 75 / 0.35);
+  --shadow-glow-violet: 0 0 0 1px oklch(0.72 0.18 295 / 0.18),
+    0 8px 32px -10px oklch(0.72 0.18 295 / 0.35);
+  --shadow-glow-cyan: 0 0 0 1px oklch(0.78 0.14 215 / 0.18),
+    0 8px 32px -10px oklch(0.78 0.14 215 / 0.35);
+  --shadow-glow-orange: 0 0 0 1px oklch(0.75 0.19 45 / 0.2),
+    0 8px 32px -10px oklch(0.75 0.19 45 / 0.4);
 }
 
 html,
@@ -39,34 +73,137 @@ html {
   color: var(--color-fg);
   font-family: var(--font-sans);
   font-size: 14px;
-  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  font-feature-settings: 'cv11', 'ss01', 'ss03', 'cv02';
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
 }
 
+/* ---------- Atmospheric background ---------- */
+/* Two soft gradient blobs + a fixed grain layer give the dark canvas
+   subtle depth without being noisy. All pointer-events-none. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20vmax;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      40vmax 40vmax at 12% -8%,
+      oklch(0.75 0.19 45 / 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      52vmax 38vmax at 110% 20%,
+      oklch(0.72 0.18 295 / 0.16),
+      transparent 60%
+    ),
+    radial-gradient(
+      36vmax 28vmax at 50% 110%,
+      oklch(0.78 0.14 215 / 0.12),
+      transparent 60%
+    );
+  filter: saturate(1.05);
+  animation: drift 32s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.45 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes drift {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate3d(2vmax, -1vmax, 0) rotate(2deg);
+  }
+}
+
+/* ---------- Selection / focus ---------- */
 *:focus-visible {
-  outline: 2px solid var(--color-border-hi);
+  outline: 2px solid var(--color-accent-amber);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 ::selection {
-  background: oklch(0.68 0.17 290 / 0.35);
+  background: oklch(0.82 0.165 75 / 0.35);
   color: var(--color-fg);
 }
 
 /* ---------- Scrollbar ---------- */
 * {
-  scrollbar-color: oklch(1 0 0 / 0.08) transparent;
+  scrollbar-color: oklch(1 0 0 / 0.1) transparent;
   scrollbar-width: thin;
 }
 
-/* ---------- View Transitions ---------- */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 0.08);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 0.18);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
 
+/* ---------- Reusable utility primitives ---------- */
+.surface-glass {
+  background: color-mix(in oklch, var(--color-bg-raised) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+
+.text-gradient-warm {
+  background: linear-gradient(
+    100deg,
+    var(--color-accent-amber) 0%,
+    var(--color-accent-orange) 38%,
+    var(--color-accent-pink) 70%,
+    var(--color-accent-violet) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.divider-grad {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-border-hi) 50%,
+    transparent
+  );
+}
+
+/* ---------- View Transitions ---------- */
 @supports (view-transition-name: x) {
   ::view-transition-group(root) {
     animation-duration: 280ms;
@@ -79,44 +216,44 @@ body {
     animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
   }
 
-  /* Tool card → detail hero: shared-element morph */
   ::view-transition-group(tool-hero) {
-    animation-duration: 420ms;
+    animation-duration: 460ms;
     animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  /* Side sheet slide */
   ::view-transition-group(sheet) {
-    animation-duration: 280ms;
+    animation-duration: 300ms;
   }
   ::view-transition-old(sheet) {
-    animation: sheet-slide-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+    animation: sheet-slide-out 240ms cubic-bezier(0.4, 0, 1, 1) both;
   }
   ::view-transition-new(sheet) {
-    animation: sheet-slide-in 300ms cubic-bezier(0.2, 0, 0, 1) both;
+    animation: sheet-slide-in 320ms cubic-bezier(0.2, 0, 0, 1) both;
   }
 
   @keyframes sheet-slide-in {
     from {
-      transform: translateX(24px);
+      transform: translateX(32px);
       opacity: 0;
     }
   }
   @keyframes sheet-slide-out {
     to {
-      transform: translateX(24px);
+      transform: translateX(32px);
       opacity: 0;
     }
   }
 
-  /* Tab panel cross-fade */
   ::view-transition-old(tab-panel),
   ::view-transition-new(tab-panel) {
-    animation-duration: 180ms;
+    animation-duration: 200ms;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {

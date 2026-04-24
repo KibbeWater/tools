@@ -15,9 +15,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       <select
         ref={ref}
         className={cn(
-          'w-full h-8 pr-8 pl-2.5 text-[13px] rounded-[var(--radius-sm)] bg-[var(--color-bg-raised)] appearance-none',
+          'w-full h-9 pr-9 pl-3 text-[13px] rounded-[var(--radius-sm)] bg-[var(--color-bg-raised)] appearance-none',
           'border border-[var(--color-border)] text-[var(--color-fg)]',
-          'transition-colors focus:border-[var(--color-border-hi)] focus:outline-none',
+          'transition-colors focus:border-[var(--color-accent-amber)] focus:outline-none',
+          'focus:ring-2 focus:ring-[color-mix(in_oklch,var(--color-accent-amber)_30%,transparent)]',
           className,
         )}
         {...rest}
@@ -30,7 +31,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
       </select>
       <ChevronDown
         size={14}
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-fg-subtle)]"
+        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--color-fg-subtle)]"
       />
     </div>
   );

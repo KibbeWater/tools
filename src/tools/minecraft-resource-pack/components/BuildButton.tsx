@@ -13,27 +13,27 @@ export function BuildButton({ onClick, disabled, progress }: BuildButtonProps) {
   const busy = !!progress && progress.step !== 'done';
   return (
     <div className="flex items-center gap-3">
+      {busy && (
+        <span className="text-[11.5px] font-mono text-[var(--color-fg-subtle)] tabular-nums">
+          {progress!.current}/{progress!.total}
+        </span>
+      )}
       <Button
         size="lg"
-        variant="primary"
+        variant="accent"
         onClick={onClick}
         disabled={disabled || busy}
         leading={
           busy ? (
-            <Loader2 size={14} className="animate-spin" />
+            <Loader2 size={15} className="animate-spin" />
           ) : (
-            <Hammer size={14} />
+            <Hammer size={15} />
           )
         }
       >
         {busy ? progress!.message : 'Build pack'}
       </Button>
       {!busy && <Kbd keys="b" />}
-      {busy && (
-        <span className="text-[12px] text-[var(--color-fg-subtle)] tabular-nums">
-          {progress!.current}/{progress!.total}
-        </span>
-      )}
     </div>
   );
 }
