@@ -80,3 +80,7 @@ export const getVersion = (id: string): McVersion =>
 
 export const getDisc = (id: string): DiscMeta | undefined =>
   DISCS.find((d) => d.id === id);
+
+/** Item sprite for a vanilla disc (Java Edition texture, via minecraft.wiki). */
+export const discImage = (id: string): string =>
+  `${import.meta.env.BASE_URL}images/minecraft/discs/${id}.png`;

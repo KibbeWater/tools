@@ -1,6 +1,8 @@
-import { Hammer, Loader2 } from 'lucide-react';
+import { faDownload } from '@fortawesome/free-solid-svg-icons/faDownload';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons/faSpinner';
 import { Button } from '@/components/ui/Button';
 import { Kbd } from '@/components/ui/Kbd';
+import { Icon } from '@/components/ui/Icon';
 import type { BuildProgress } from '../lib/pack-builder';
 
 interface BuildButtonProps {
@@ -12,9 +14,9 @@ interface BuildButtonProps {
 export function BuildButton({ onClick, disabled, progress }: BuildButtonProps) {
   const busy = !!progress && progress.step !== 'done';
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 shrink-0">
       {busy && (
-        <span className="text-[11.5px] font-mono text-[var(--color-fg-subtle)] tabular-nums">
+        <span className="text-[12.5px] text-[var(--color-fg-subtle)] tabular-nums">
           {progress!.current}/{progress!.total}
         </span>
       )}
@@ -23,17 +25,11 @@ export function BuildButton({ onClick, disabled, progress }: BuildButtonProps) {
         variant="accent"
         onClick={onClick}
         disabled={disabled || busy}
-        leading={
-          busy ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : (
-            <Hammer size={15} />
-          )
-        }
+        leading={busy ? <Icon icon={faSpinner} size={13} spin /> : <Icon icon={faDownload} size={13} />}
       >
         {busy ? progress!.message : 'Build pack'}
       </Button>
-      {!busy && <Kbd keys="b" />}
+      {!busy && <Kbd keys="b" className="hidden sm:inline-flex" />}
     </div>
   );
 }

@@ -19,19 +19,17 @@ export function Toggle({ checked, onChange, id, ariaLabel, disabled }: TogglePro
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative inline-flex h-[22px] w-[38px] items-center rounded-full transition-all border',
-        'disabled:opacity-50 disabled:pointer-events-none',
+        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors',
+        'disabled:opacity-40 disabled:pointer-events-none',
         checked
-          ? 'bg-gradient-to-r from-[var(--color-accent-amber)] to-[var(--color-accent-orange)] border-transparent shadow-[0_0_0_3px_color-mix(in_oklch,var(--color-accent-amber)_18%,transparent)]'
-          : 'bg-[var(--color-bg-raised)] border-[var(--color-border)] hover:border-[var(--color-border-hi)]',
+          ? 'bg-[var(--color-accent)] border-[var(--color-ink)]'
+          : 'bg-[var(--color-surface-hi)] border-[var(--color-border-hi)]',
       )}
     >
       <span
         className={cn(
-          'inline-block h-[16px] w-[16px] rounded-full transition-transform shadow-sm',
-          checked
-            ? 'translate-x-[19px] bg-[var(--color-bg)]'
-            : 'translate-x-[3px] bg-[var(--color-fg-muted)]',
+          'inline-block h-3.5 w-3.5 rounded-full border border-[var(--color-ink)] bg-[var(--color-bg-raised)] transition-transform',
+          checked ? 'translate-x-[18px]' : 'translate-x-[2px]',
         )}
       />
     </button>

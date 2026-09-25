@@ -1,43 +1,50 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/fredoka';
 
+/* Fredoka (rounded) is for titles and the wordmark (`font-display`). Everything else is Inter. */
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+  --font-display: 'Fredoka Variable', ui-rounded, 'SF Pro Rounded', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
 
-  /* Warm-tinted greyscale — slight orange undertone keeps it from feeling sterile */
-  --color-bg: oklch(0.13 0.012 60);
-  --color-bg-raised: oklch(0.16 0.012 60);
-  --color-surface: oklch(0.185 0.013 60);
-  --color-surface-hi: oklch(0.225 0.014 60);
-  --color-border: oklch(1 0 0 / 0.06);
-  --color-border-hi: oklch(1 0 0 / 0.13);
-  --color-border-glow: oklch(0.78 0.16 65 / 0.45);
+/* Cream paper, warm brown ink and six pastels. `--color-accent` is the site
+   default; a tool page or card overrides it with its own pastel and every
+   primitive follows along. Pastels are fills: text on them is always ink. */
+:root {
+  color-scheme: light;
 
-  --color-fg: oklch(0.98 0.005 90);
-  --color-fg-muted: oklch(0.74 0.012 80);
-  --color-fg-subtle: oklch(0.54 0.012 80);
+  --color-bg: #fff6ee;
+  --color-bg-raised: #ffffff;
+  --color-surface: #fdeee2;
+  --color-surface-hi: #f8e2d2;
+  --color-border: rgb(74 52 40 / 0.12);
+  --color-border-hi: rgb(74 52 40 / 0.24);
 
-  /* Brand palette — warmer, more saturated than before */
-  --color-accent-amber: oklch(0.82 0.165 75);
-  --color-accent-orange: oklch(0.75 0.19 45);
-  --color-accent-pink: oklch(0.74 0.18 0);
-  --color-accent-cyan: oklch(0.78 0.14 215);
-  --color-accent-violet: oklch(0.72 0.18 295);
-  --color-accent-lime: oklch(0.84 0.17 130);
+  --color-fg: #4a3428;
+  --color-fg-muted: #76604f;
+  --color-fg-subtle: #937a69;
+  /* Text on top of an accent fill */
+  --color-ink: #4a3428;
 
-  --color-success: oklch(0.78 0.16 145);
-  --color-danger: oklch(0.72 0.19 25);
+  --color-accent-peach: #ffc4a3;
+  --color-accent-pink: #ffb3cc;
+  --color-accent-butter: #ffdf85;
+  --color-accent-mint: #b0e8c9;
+  --color-accent-sky: #b3d8ff;
+  --color-accent-lavender: #d4c3ff;
 
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
-  --radius-2xl: 32px;
+  --color-accent: var(--color-accent-pink);
+  --color-accent-fg: var(--color-ink);
 
-  /* Semantic z-index scale — single source of truth for stacking */
+  --color-success: #3f9e68;
+  --color-danger: #d3455e;
+  --color-overlay: rgb(74 52 40 / 0.32);
+
+  --shadow-float: 0 2px 0 rgb(74 52 40 / 0.06), 0 18px 40px -16px rgb(74 52 40 / 0.35);
+
+  /* Semantic z-index scale */
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 20;
@@ -48,17 +55,16 @@
   --z-modal: 70;
   --z-toast: 80;
   --z-cmdk: 90;
+}
 
-  /* Shadows tuned for a dark, slightly warm canvas */
-  --shadow-soft: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 12px 32px -16px oklch(0 0 0 / 0.6);
-  --shadow-glow-amber: 0 0 0 1px oklch(0.82 0.165 75 / 0.18),
-    0 8px 32px -10px oklch(0.82 0.165 75 / 0.35);
-  --shadow-glow-violet: 0 0 0 1px oklch(0.72 0.18 295 / 0.18),
-    0 8px 32px -10px oklch(0.72 0.18 295 / 0.35);
-  --shadow-glow-cyan: 0 0 0 1px oklch(0.78 0.14 215 / 0.18),
-    0 8px 32px -10px oklch(0.78 0.14 215 / 0.35);
-  --shadow-glow-orange: 0 0 0 1px oklch(0.75 0.19 45 / 0.2),
-    0 8px 32px -10px oklch(0.75 0.19 45 / 0.4);
+/* Derived per-accent values. Declared on every element so a local
+   `--color-accent` override recomputes them in that subtree. `deep` is the
+   pastel pushed toward ink: shadows, underlines and focus rings, where the raw
+   pastel would be too faint against cream. */
+* {
+  --color-accent-hover: color-mix(in oklch, var(--color-accent), var(--color-ink) 8%);
+  --color-accent-soft: color-mix(in oklch, var(--color-accent) 35%, transparent);
+  --color-accent-deep: color-mix(in oklch, var(--color-accent), var(--color-ink) 45%);
 }
 
 html,
@@ -68,139 +74,87 @@ body,
 }
 
 html {
-  color-scheme: dark;
   background: var(--color-bg);
   color: var(--color-fg);
   font-family: var(--font-sans);
-  font-size: 14px;
-  font-feature-settings: 'cv11', 'ss01', 'ss03', 'cv02';
-  text-rendering: optimizeLegibility;
+  font-size: 15px;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
   -webkit-font-smoothing: antialiased;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  position: relative;
+  background: var(--color-bg);
   overflow-x: hidden;
 }
 
-/* ---------- Atmospheric background ---------- */
-/* Two soft gradient blobs + a fixed grain layer give the dark canvas
-   subtle depth without being noisy. All pointer-events-none. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: -20vmax;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      40vmax 40vmax at 12% -8%,
-      oklch(0.75 0.19 45 / 0.18),
-      transparent 60%
-    ),
-    radial-gradient(
-      52vmax 38vmax at 110% 20%,
-      oklch(0.72 0.18 295 / 0.16),
-      transparent 60%
-    ),
-    radial-gradient(
-      36vmax 28vmax at 50% 110%,
-      oklch(0.78 0.14 215 / 0.12),
-      transparent 60%
-    );
-  filter: saturate(1.05);
-  animation: drift 32s ease-in-out infinite alternate;
-}
-
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.4;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.45 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-}
-
-#root {
-  position: relative;
-  z-index: 1;
-}
-
-@keyframes drift {
-  0% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+/* In the base layer so a utility like `focus-visible:outline-none` can still opt out. */
+@layer base {
+  *:focus-visible {
+    outline: 2px solid var(--color-accent-deep);
+    outline-offset: 2px;
   }
-  100% {
-    transform: translate3d(2vmax, -1vmax, 0) rotate(2deg);
-  }
-}
-
-/* ---------- Selection / focus ---------- */
-*:focus-visible {
-  outline: 2px solid var(--color-accent-amber);
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 
 ::selection {
-  background: oklch(0.82 0.165 75 / 0.35);
+  background: var(--color-accent);
   color: var(--color-fg);
 }
 
-/* ---------- Scrollbar ---------- */
-* {
-  scrollbar-color: oklch(1 0 0 / 0.1) transparent;
-  scrollbar-width: thin;
+a.link {
+  color: var(--color-fg);
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent-deep);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms;
+}
+a.link:hover {
+  text-decoration-color: var(--color-fg);
 }
 
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-*::-webkit-scrollbar-thumb {
-  background: oklch(1 0 0 / 0.08);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background: oklch(1 0 0 / 0.18);
-  background-clip: padding-box;
-  border: 2px solid transparent;
+/* Minecraft sprites are upscaled pixel art; keep the edges hard. */
+.pixelated {
+  image-rendering: pixelated;
 }
 
-/* ---------- Reusable utility primitives ---------- */
-.surface-glass {
-  background: color-mix(in oklch, var(--color-bg-raised) 78%, transparent);
-  backdrop-filter: blur(14px) saturate(1.4);
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+/* Floating notes: rise, drift and fade. `.notes-hover` only plays while its
+   `.group` ancestor is hovered; `.notes-always` loops continuously. */
+@keyframes note-rise {
+  0% {
+    transform: translate(0, 0) rotate(-10deg) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--drift, 12px), -90px) rotate(14deg) scale(1.05);
+    opacity: 0;
+  }
+}
+.note {
+  opacity: 0;
+  animation: note-rise 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+  animation-delay: var(--delay, 0s);
+}
+.notes-hover .note {
+  animation-play-state: paused;
+}
+.group:hover .notes-hover .note,
+.group:focus-within .notes-hover .note {
+  animation-play-state: running;
 }
 
-.text-gradient-warm {
-  background: linear-gradient(
-    100deg,
-    var(--color-accent-amber) 0%,
-    var(--color-accent-orange) 38%,
-    var(--color-accent-pink) 70%,
-    var(--color-accent-violet) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.divider-grad {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--color-border-hi) 50%,
-    transparent
-  );
+@keyframes float-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-1.5deg);
+  }
 }
 
 /* ---------- View Transitions ---------- */
@@ -216,6 +170,8 @@ body::after {
     animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
   }
 
+  /* Home tool row morphs into the tool page header. */
+  ::view-transition-group(tool-card-minecraft-resource-pack),
   ::view-transition-group(tool-hero) {
     animation-duration: 460ms;
     animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
@@ -251,7 +207,7 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body::before {
+  .note {
     animation: none;
   }
   ::view-transition-group(*),

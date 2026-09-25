@@ -10,7 +10,7 @@ function ToolBoundary() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto max-w-[1080px] px-4 py-24 text-[var(--color-fg-subtle)] text-[13px]">
+        <div className="mx-auto max-w-[1040px] px-4 sm:px-6 py-24 text-[var(--color-fg-subtle)] text-[14px]">
           Loading tool…
         </div>
       }

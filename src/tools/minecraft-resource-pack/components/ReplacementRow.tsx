@@ -1,6 +1,9 @@
-import { Disc3, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { faPen } from '@fortawesome/free-solid-svg-icons/faPen';
+import { faTrashCan } from '@fortawesome/free-solid-svg-icons/faTrashCan';
 import { cn } from '@/lib/cn';
+import { Icon } from '@/components/ui/Icon';
+import { discImage } from '../lib/discs';
 import type { DiscReplacement } from '../lib/state';
 
 interface ReplacementRowProps {
@@ -13,7 +16,6 @@ interface ReplacementRowProps {
 }
 
 export function ReplacementRow({
-  index,
   item,
   selected,
   onSelect,
@@ -28,72 +30,71 @@ export function ReplacementRow({
       exit={{ opacity: 0, y: -4 }}
       transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
       className={cn(
-        'group relative flex items-center gap-3 px-3.5 py-3 rounded-[var(--radius-sm)] border cursor-pointer transition-all',
+        'group flex items-center gap-4 pl-4 pr-3 py-2.5 border-b border-[var(--color-border)] last:border-b-0 cursor-pointer transition-colors',
         selected
-          ? 'border-[color-mix(in_oklch,var(--color-accent-amber)_50%,transparent)] bg-[color-mix(in_oklch,var(--color-accent-amber)_8%,var(--color-surface))]'
-          : 'border-[var(--color-border)] bg-[var(--color-surface)]/70 hover:bg-[var(--color-surface-hi)] hover:border-[var(--color-border-hi)]',
+          ? 'bg-[var(--color-accent-soft)]'
+          : 'hover:bg-[var(--color-surface)]',
       )}
       onClick={onSelect}
     >
-      {selected && (
-        <span
-          aria-hidden
-          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full"
-          style={{ background: 'var(--color-accent-amber)' }}
-        />
-      )}
-      <span className="font-mono text-[10.5px] text-[var(--color-fg-subtle)] w-5 text-right tabular-nums">
-        {String(index + 1).padStart(2, '0')}
-      </span>
-      <div
-        className="h-8 w-8 rounded-[var(--radius-xs)] flex items-center justify-center shrink-0"
-        style={{
-          background:
-            'color-mix(in oklch, var(--color-accent-amber) 16%, transparent)',
-          color: 'var(--color-accent-amber)',
-          border:
-            '1px solid color-mix(in oklch, var(--color-accent-amber) 28%, transparent)',
-        }}
-      >
-        <Disc3 size={14} />
-      </div>
+      <img
+        src={discImage(item.disc.id)}
+        alt=""
+        width={48}
+        height={48}
+        className="pixelated w-12 h-12 -my-1 shrink-0"
+      />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] text-[var(--color-fg)] font-medium truncate">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[14px] text-[var(--color-fg)] font-medium truncate">
             {item.disc.label}
           </span>
-          <span className="font-mono text-[10.5px] text-[var(--color-fg-subtle)] px-1.5 py-0.5 rounded bg-[var(--color-bg-raised)] border border-[var(--color-border)]">
-            {item.disc.id}
+          <span className="text-[12.5px] text-[var(--color-fg-subtle)] truncate">
+            {item.disc.composer}
           </span>
         </div>
-        <div className="text-[11.5px] text-[var(--color-fg-subtle)] truncate mt-0.5">
+        <div className="text-[13px] text-[var(--color-fg-muted)] truncate mt-0.5">
           {item.source.name}
         </div>
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          className="h-7 w-7 inline-flex items-center justify-center rounded-full text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-bg-raised)]"
-          aria-label="Edit"
-        >
-          <Pencil size={13} />
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          className="h-7 w-7 inline-flex items-center justify-center rounded-full text-[var(--color-fg-muted)] hover:text-[var(--color-danger)] hover:bg-[color-mix(in_oklch,var(--color-danger)_14%,transparent)]"
-          aria-label="Remove"
-        >
-          <Trash2 size={13} />
-        </button>
+      <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <RowButton label="Edit" onClick={onEdit}>
+          <Icon icon={faPen} size={12} />
+        </RowButton>
+        <RowButton label="Remove" onClick={onRemove} danger>
+          <Icon icon={faTrashCan} size={12} />
+        </RowButton>
       </div>
     </motion.li>
+  );
+}
+
+function RowButton({
+  label,
+  onClick,
+  danger,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        'h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-hi)]',
+        danger ? 'hover:text-[var(--color-danger)]' : 'hover:text-[var(--color-fg)]',
+      )}
+    >
+      {children}
+    </button>
   );
 }

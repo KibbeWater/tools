@@ -1,15 +1,21 @@
 import { lazy } from 'react';
 import type { ComponentType, LazyExoticComponent } from 'react';
 
-export type ToolAccent = 'amber' | 'orange' | 'cyan' | 'violet';
+export type ToolAccent = 'peach' | 'pink' | 'butter' | 'mint' | 'sky' | 'lavender';
+
+/** CSS value for a tool's accent; set it as `--color-accent` on the tool's subtree. */
+export const accentVar = (accent: ToolAccent) => `var(--color-accent-${accent})`;
 
 export interface ToolMeta {
   id: string;
   name: string;
   tagline: string;
   description: string;
+  /** Identity color. Tints the tool's card, header, buttons and focus rings. */
   accent: ToolAccent;
   iconName: string;
+  /** Optional pixel-art image shown next to the tool in listings. */
+  image?: { src: string; alt: string };
   path: string;
   status: 'stable' | 'beta' | 'wip';
   component: LazyExoticComponent<ComponentType>;
@@ -23,9 +29,13 @@ const minecraftResourcePack: ToolMeta = {
   name: 'Minecraft Resource Pack Builder',
   tagline: 'Swap music discs, export a drop-in pack.',
   description:
-    'Build a ready-to-install resource pack that replaces Minecraft music discs with your own audio. Supports every pack format from 1.16 through the latest version, with an advanced mode for custom / modded discs.',
-  accent: 'amber',
-  iconName: 'Disc3',
+    'Replace the music discs in Minecraft with your own audio and get back a resource pack zip. Works with pack formats from 1.16 to the current release, and can also register brand-new discs.',
+  accent: 'butter',
+  iconName: 'compact-disc',
+  image: {
+    src: `${import.meta.env.BASE_URL}images/minecraft/jukebox.png`,
+    alt: 'Minecraft jukebox',
+  },
   path: '/minecraft-resource-pack',
   status: 'beta',
   component: lazy(() => import('./minecraft-resource-pack/route')),

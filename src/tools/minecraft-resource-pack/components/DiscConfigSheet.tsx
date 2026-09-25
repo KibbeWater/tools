@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Disc3 } from 'lucide-react';
 import { Sheet } from '@/components/ui/Sheet';
 import { Button } from '@/components/ui/Button';
 import { FileDrop } from '@/components/ui/FileDrop';
 import { Slider } from '@/components/ui/Slider';
 import { Toggle } from '@/components/ui/Toggle';
-import { Field } from '@/components/ui/Input';
+import { Field, Input } from '@/components/ui/Input';
 import { defaultReplacement, type DiscReplacement } from '../lib/state';
-import type { DiscMeta } from '../lib/discs';
+import { discImage, type DiscMeta } from '../lib/discs';
 
 interface DiscConfigSheetProps {
   open: boolean;
@@ -54,16 +53,16 @@ export function DiscConfigSheet({
       onClose={onClose}
       title={
         disc ? (
-          <span className="inline-flex items-center gap-2">
-            <Disc3 size={16} className="text-[var(--color-accent-amber)]" />
-            Replace <span className="text-[var(--color-fg-muted)]">·</span> {disc.label}
+          <span className="flex items-center gap-3">
+            <img src={discImage(disc.id)} alt="" width={44} height={44} className="pixelated w-11 h-11 -my-2" />
+            Replace “{disc.label}”
           </span>
         ) : (
           'Configure disc'
         )
       }
       description={
-        disc?.composer ? `Originally composed by ${disc.composer}.` : undefined
+        disc?.composer ? `Original track by ${disc.composer}.` : undefined
       }
       footer={
         <>
@@ -84,18 +83,18 @@ export function DiscConfigSheet({
         <FileDrop
           accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac"
           onFiles={(files) => files[0] && setFile(files[0])}
-          label="Drop an audio file (or click to browse)"
-          sublabel="MP3, WAV, FLAC, OGG, M4A — whatever Minecraft won't accept, we'll convert."
+          label="Drop an audio file, or click to browse"
+          sublabel="MP3, WAV, FLAC, OGG or M4A. It gets converted to OGG Vorbis for Minecraft."
         />
       ) : (
         <div className="space-y-5">
-          <div className="flex items-start justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-raised)] p-3">
+          <div className="flex items-start justify-between gap-3 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <div className="min-w-0">
-              <div className="text-[12.5px] text-[var(--color-fg-muted)]">Source file</div>
-              <div className="text-[13px] text-[var(--color-fg)] truncate">
+              <div className="text-[12.5px] text-[var(--color-fg-subtle)]">Source file</div>
+              <div className="text-[14px] text-[var(--color-fg)] truncate">
                 {state.source.name}
               </div>
-              <div className="text-[11.5px] text-[var(--color-fg-subtle)] mt-0.5">
+              <div className="text-[12.5px] text-[var(--color-fg-subtle)] mt-0.5 tabular-nums">
                 {formatBytes(state.source.size)}
               </div>
             </div>
@@ -110,7 +109,7 @@ export function DiscConfigSheet({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Trim start (s)">
-              <input
+              <Input
                 type="number"
                 min={0}
                 step={0.1}
@@ -118,11 +117,10 @@ export function DiscConfigSheet({
                 onChange={(e) =>
                   setState({ ...state, trimStart: Number(e.target.value) || 0 })
                 }
-                className="w-full h-8 px-2.5 text-[13px] rounded-[var(--radius-sm)] bg-[var(--color-bg-raised)] border border-[var(--color-border)]"
               />
             </Field>
             <Field label="Trim end (s)" hint="0 = end">
-              <input
+              <Input
                 type="number"
                 min={0}
                 step={0.1}
@@ -130,7 +128,6 @@ export function DiscConfigSheet({
                 onChange={(e) =>
                   setState({ ...state, trimEnd: Number(e.target.value) || 0 })
                 }
-                className="w-full h-8 px-2.5 text-[13px] rounded-[var(--radius-sm)] bg-[var(--color-bg-raised)] border border-[var(--color-border)]"
               />
             </Field>
           </div>
@@ -184,11 +181,11 @@ export function DiscConfigSheet({
             />
           </Field>
 
-          <div className="flex items-center justify-between rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-raised)] px-3 py-2.5">
+          <div className="flex items-center justify-between gap-4 pt-4 border-t border-[var(--color-border)]">
             <div>
-              <div className="text-[13px] text-[var(--color-fg)]">Mono downmix</div>
-              <div className="text-[11.5px] text-[var(--color-fg-subtle)]">
-                Music discs are non-positional; stereo is safe.
+              <div className="text-[13px] font-medium text-[var(--color-fg)]">Mono downmix</div>
+              <div className="text-[12.5px] text-[var(--color-fg-subtle)]">
+                Discs play non-positionally, so stereo is fine.
               </div>
             </div>
             <Toggle

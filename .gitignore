@@ -9,3 +9,6 @@ target
 
 # wasm-pack outputs (generated, not committed)
 src/tools/*/wasm/
+
+# Playwright MCP screenshots and snapshots
+.playwright-mcp/

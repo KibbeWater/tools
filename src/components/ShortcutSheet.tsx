@@ -11,29 +11,22 @@ const globals: { keys: string; description: string }[] = [
   { keys: 'g h', description: 'Go to Home' },
   { keys: 'g m', description: 'Go to Minecraft tool' },
   { keys: '/', description: 'Focus search on current page' },
-  { keys: '?', description: 'Show this cheatsheet' },
-  { keys: 'Escape', description: 'Close active sheet' },
+  { keys: '?', description: 'Show this list' },
+  { keys: 'Escape', description: 'Close the open panel' },
 ];
 
 const mcTool: { keys: string; description: string }[] = [
   { keys: 'n', description: 'Replace a disc' },
   { keys: 'b', description: 'Build pack' },
-  { keys: 'Tab', description: 'Switch Vanilla / Advanced' },
 ];
 
 export function ShortcutSheet({ open, onClose }: ShortcutSheetProps) {
   return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title="Keyboard shortcuts"
-      description="Browse and run anything without leaving the keyboard."
-      widthClass="w-[min(460px,100vw)]"
-    >
-      <section className="space-y-7">
-        <Group title="Global" items={globals} />
-        <Group title="Minecraft resource pack" items={mcTool} />
-      </section>
+    <Sheet open={open} onClose={onClose} title="Keyboard shortcuts">
+      <div className="space-y-8">
+        <Group title="Everywhere" items={globals} />
+        <Group title="Minecraft Resource Pack Builder" items={mcTool} />
+      </div>
     </Sheet>
   );
 }
@@ -46,23 +39,19 @@ function Group({
   items: { keys: string; description: string }[];
 }) {
   return (
-    <div>
-      <h3 className="text-[10.5px] uppercase tracking-[0.1em] font-semibold font-mono text-[var(--color-accent-amber)] mb-3">
-        // {title}
-      </h3>
-      <ul className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-raised)]/40 overflow-hidden">
-        {items.map((s, i) => (
+    <section>
+      <h3 className="text-[13px] font-semibold text-[var(--color-fg)] mb-2">{title}</h3>
+      <ul className="border-t border-[var(--color-border)]">
+        {items.map((s) => (
           <li
             key={s.keys}
-            className={`flex items-center justify-between px-3.5 py-2.5 ${
-              i !== items.length - 1 ? 'border-b border-[var(--color-border)]' : ''
-            }`}
+            className="flex items-center justify-between py-2.5 border-b border-[var(--color-border)]"
           >
-            <span className="text-[13px] text-[var(--color-fg)]">{s.description}</span>
+            <span className="text-[13.5px] text-[var(--color-fg-muted)]">{s.description}</span>
             <Kbd keys={s.keys} />
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }

@@ -61,7 +61,7 @@ export function Kbd({ keys, className }: KbdProps) {
       {parts.map((k, i) => (
         <kbd
           key={`${k}-${i}`}
-          className="font-mono text-[10.5px] leading-none text-[var(--color-fg-muted)] h-[20px] min-w-[20px] px-1.5 rounded-[5px] border border-[var(--color-border)] bg-[var(--color-bg-raised)]/80 backdrop-blur-sm inline-flex items-center justify-center shadow-[0_1px_0_oklch(0_0_0_/_0.3)]"
+          className="font-sans text-[11px] leading-none text-[var(--color-fg-muted)] h-[19px] min-w-[19px] px-1 rounded-[6px] border border-b-2 border-[var(--color-border-hi)] bg-[var(--color-bg-raised)] inline-flex items-center justify-center"
         >
           {renderKey(k)}
         </kbd>

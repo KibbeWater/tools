@@ -12,28 +12,27 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'relative inline-flex items-center justify-center gap-2 select-none rounded-full font-semibold ' +
-  'transition-[background-color,border-color,transform,opacity,box-shadow] duration-150 ' +
-  'disabled:opacity-40 disabled:pointer-events-none ' +
-  'border border-transparent active:scale-[0.97] whitespace-nowrap';
+  'inline-flex items-center justify-center gap-2 select-none rounded-full font-medium border-2 ' +
+  'transition-[color,background-color,border-color,box-shadow,translate] duration-100 whitespace-nowrap ' +
+  'disabled:opacity-40 disabled:pointer-events-none';
 
 const sizes: Record<Size, string> = {
-  sm: 'h-7 px-3 text-[12px]',
-  md: 'h-9 px-3.5 text-[13px]',
+  sm: 'h-8 px-3 text-[12.5px]',
+  md: 'h-10 px-4 text-[13.5px]',
   lg: 'h-11 px-5 text-[14px]',
 };
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-[var(--color-fg)] text-[var(--color-bg)] hover:bg-white shadow-[0_1px_0_oklch(1_0_0_/0.4)_inset,0_8px_24px_-12px_oklch(0_0_0_/_0.6)]',
+    'bg-[var(--color-accent)] text-[var(--color-accent-fg)] font-semibold border-[var(--color-ink)] hover:bg-[var(--color-accent-hover)]',
   accent:
-    'text-[oklch(0.18_0.012_60)] bg-gradient-to-br from-[var(--color-accent-amber)] via-[var(--color-accent-orange)] to-[var(--color-accent-pink)] hover:brightness-110 shadow-[var(--shadow-glow-amber)]',
+    'bg-[var(--color-accent)] border-[var(--color-ink)] text-[var(--color-accent-fg)] font-semibold shadow-[3px_3px_0_var(--color-ink)] hover:bg-[var(--color-accent-hover)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0_var(--color-ink)]',
   secondary:
-    'bg-[var(--color-surface)] text-[var(--color-fg)] border-[var(--color-border)] hover:bg-[var(--color-surface-hi)] hover:border-[var(--color-border-hi)]',
+    'bg-[var(--color-bg-raised)] border-[var(--color-ink)] text-[var(--color-fg)] hover:bg-[var(--color-surface)]',
   ghost:
-    'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface)]',
+    'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-surface)]',
   danger:
-    'bg-[color-mix(in_oklch,var(--color-danger)_22%,var(--color-bg))] text-[var(--color-danger)] border-[color-mix(in_oklch,var(--color-danger)_30%,transparent)] hover:bg-[color-mix(in_oklch,var(--color-danger)_30%,var(--color-bg))]',
+    'border-[color-mix(in_oklch,var(--color-danger)_40%,transparent)] text-[var(--color-danger)] hover:bg-[color-mix(in_oklch,var(--color-danger)_8%,transparent)]',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(

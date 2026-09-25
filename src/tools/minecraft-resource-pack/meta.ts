@@ -2,5 +2,4 @@
 // Kept minimal here — registry owns the canonical ToolMeta so components can be lazy-loaded.
 export const minecraftResourcePackMeta = {
   id: 'minecraft-resource-pack',
-  accent: 'amber' as const,
 };

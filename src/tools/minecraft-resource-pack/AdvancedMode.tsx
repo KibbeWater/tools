@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Trash2 } from 'lucide-react';
+import { faCompactDisc } from '@fortawesome/free-solid-svg-icons/faCompactDisc';
+import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
+import { faTrashCan } from '@fortawesome/free-solid-svg-icons/faTrashCan';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { FileDrop } from '@/components/ui/FileDrop';
 import { Field, Input, Textarea } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -14,7 +17,8 @@ import {
   versionOptions,
 } from './lib/discs';
 import { cryptoRandom } from './lib/state';
-import { BuildButton } from './components/BuildButton';
+import { BuildBar } from './components/BuildBar';
+import { StepHeading } from './components/StepHeading';
 import {
   buildAdvancedPack,
   downloadBlob,
@@ -98,65 +102,48 @@ export function AdvancedMode() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
       <section className="space-y-4">
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <div className="text-[10.5px] uppercase tracking-[0.14em] font-mono text-[var(--color-accent-amber)] mb-1.5">
-              // step 01
-            </div>
-            <h2 className="text-[18px] font-semibold tracking-[-0.01em]">Custom discs</h2>
-            <p className="text-[12.5px] text-[var(--color-fg-muted)] mt-1 max-w-[560px]">
-              Define your own discs. On 1.20.5+ we'll emit a combined resource pack +
-              datapack zip that registers them as native jukebox songs.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[10.5px] font-semibold text-[var(--color-fg-subtle)] uppercase tracking-[0.08em]">
-                MC Version
-              </span>
-              <Select
-                value={versionId}
-                onChange={(e) => setVersionId(e.target.value)}
-                options={versionOptions}
-                className="w-[150px]"
-              />
-            </div>
-            <Button variant="primary" leading={<Plus size={14} />} onClick={addDraft}>
-              Add custom disc
-            </Button>
-          </div>
-        </div>
+        <StepHeading
+          step={1}
+          title="Define your discs"
+          description="New discs are added alongside the vanilla ones. On 1.20.5 and later the zip also contains a datapack that registers each one as a jukebox song."
+          actions={
+            <>
+              <label className="flex items-center gap-2 text-[13px] text-[var(--color-fg-muted)]">
+                Minecraft
+                <Select
+                  value={versionId}
+                  onChange={(e) => setVersionId(e.target.value)}
+                  options={versionOptions}
+                  className="w-[150px]"
+                />
+              </label>
+              {drafts.length > 0 && (
+                <Button variant="primary" leading={<Icon icon={faPlus} size={12} />} onClick={addDraft}>
+                  Add disc
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {drafts.length === 0 ? (
-          <div className="relative rounded-[var(--radius-md)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/40 px-6 py-14 text-center overflow-hidden">
-            <span
-              aria-hidden
-              className="absolute inset-x-0 top-0 h-[160px] pointer-events-none opacity-50"
-              style={{
-                background:
-                  'radial-gradient(60% 100% at 50% 0%, color-mix(in oklch, var(--color-accent-violet) 18%, transparent), transparent 70%)',
-              }}
-            />
-            <div className="relative mx-auto max-w-[420px] space-y-4">
-              <div className="mx-auto h-12 w-12 rounded-full flex items-center justify-center bg-[var(--color-bg-raised)] border border-[var(--color-border)]">
-                <Plus size={18} className="text-[var(--color-accent-violet)]" />
-              </div>
-              <div className="text-[15px] font-semibold text-[var(--color-fg)]">
-                No custom discs yet
-              </div>
-              <p className="text-[12.5px] text-[var(--color-fg-muted)] leading-relaxed">
-                Advanced mode registers net-new discs rather than replacing vanilla
-                ones. Each disc needs a namespace, a machine-readable id, and an audio
-                file.
-              </p>
-              <div className="flex justify-center pt-1">
-                <Button variant="primary" leading={<Plus size={14} />} onClick={addDraft}>
-                  Add custom disc
-                </Button>
-              </div>
-            </div>
+          <div className="rounded-[24px] border-2 border-dashed border-[var(--color-border-hi)] bg-[var(--color-bg-raised)] px-5 py-8 sm:px-8">
+            <Icon icon={faCompactDisc} size={28} className="text-[var(--color-fg-subtle)] mb-4" />
+            <p className="text-[15px] font-medium text-[var(--color-fg)]">No custom discs yet.</p>
+            <p className="mt-1 text-[14px] text-[var(--color-fg-muted)] leading-relaxed max-w-[52ch]">
+              Each disc needs a namespace, an id made of lowercase letters, digits and
+              underscores, and an audio file.
+            </p>
+            <Button
+              variant="primary"
+              className="mt-5"
+              leading={<Icon icon={faPlus} size={12} />}
+              onClick={addDraft}
+            >
+              Add a disc
+            </Button>
           </div>
         ) : (
           <ul className="space-y-3">
@@ -165,39 +152,34 @@ export function AdvancedMode() {
                 <motion.li
                   layout
                   key={d.key}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                 >
                   <Card className="p-4 space-y-4">
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
                       <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Field label="Display name">
                           <Input
                             value={d.displayName}
-                            onChange={(e) =>
-                              updateDraft(d.key, { displayName: e.target.value })
-                            }
+                            onChange={(e) => updateDraft(d.key, { displayName: e.target.value })}
                           />
                         </Field>
-                        <Field label="Namespace : id" hint="lowercase, underscores">
+                        <Field label="Namespace and id" hint="a–z, 0–9, _">
                           <div className="flex items-center gap-1.5">
                             <Input
                               value={d.namespace}
-                              onChange={(e) =>
-                                updateDraft(d.key, { namespace: e.target.value })
-                              }
+                              onChange={(e) => updateDraft(d.key, { namespace: e.target.value })}
                               placeholder="custom"
-                              className="w-[40%]"
+                              className="w-[40%] font-mono text-[13px]"
                             />
                             <span className="text-[var(--color-fg-subtle)]">:</span>
                             <Input
                               value={d.id}
-                              onChange={(e) =>
-                                updateDraft(d.key, { id: e.target.value })
-                              }
+                              onChange={(e) => updateDraft(d.key, { id: e.target.value })}
                               placeholder="disc_name"
-                              className="flex-1"
+                              className="flex-1 font-mono text-[13px]"
                             />
                           </div>
                         </Field>
@@ -205,29 +187,27 @@ export function AdvancedMode() {
                       <button
                         type="button"
                         onClick={() => removeDraft(d.key)}
-                        className="p-2 rounded-[var(--radius-sm)] text-[var(--color-fg-muted)] hover:text-[oklch(0.82_0.15_25)] hover:bg-[var(--color-bg-raised)]"
-                        aria-label="Remove"
+                        className="mt-6 h-10 w-10 inline-flex items-center justify-center rounded-full text-[var(--color-fg-muted)] hover:text-[var(--color-danger)] hover:bg-[var(--color-surface)]"
+                        aria-label="Remove disc"
+                        title="Remove disc"
                       >
-                        <Trash2 size={14} />
+                        <Icon icon={faTrashCan} size={13} />
                       </button>
                     </div>
 
                     {d.source ? (
-                      <div className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-raised)] px-3 py-2">
+                      <div className="flex items-center justify-between gap-3 rounded-[12px] bg-[var(--color-surface)] px-3 py-2">
                         <div className="min-w-0">
-                          <div className="text-[12.5px] text-[var(--color-fg)] truncate">
+                          <div className="text-[13.5px] text-[var(--color-fg)] truncate">
                             {d.source.name}
                           </div>
-                          <div className="text-[11px] text-[var(--color-fg-subtle)]">
+                          <div className="text-[12px] text-[var(--color-fg-subtle)] tabular-nums">
                             {(d.source.size / 1024).toFixed(1)} KB
                           </div>
                         </div>
                         <Button
                           size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            updateDraft(d.key, { source: undefined as unknown as File })
-                          }
+                          onClick={() => updateDraft(d.key, { source: undefined as unknown as File })}
                         >
                           Change
                         </Button>
@@ -236,23 +216,19 @@ export function AdvancedMode() {
                       <FileDrop
                         compact
                         accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a"
-                        onFiles={(files) =>
-                          files[0] && updateDraft(d.key, { source: files[0] })
-                        }
-                        label="Drop an audio file"
+                        onFiles={(files) => files[0] && updateDraft(d.key, { source: files[0] })}
+                        label="Choose an audio file"
                       />
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                       <Field label="Gain" hint={`${d.gain.toFixed(1)} dB`}>
                         <Slider
                           min={-18}
                           max={12}
                           step={0.5}
                           value={d.gain}
-                          onChange={(e) =>
-                            updateDraft(d.key, { gain: Number(e.target.value) })
-                          }
+                          onChange={(e) => updateDraft(d.key, { gain: Number(e.target.value) })}
                         />
                       </Field>
                       <Field label="OGG quality" hint={`q${d.quality.toFixed(1)}`}>
@@ -261,18 +237,17 @@ export function AdvancedMode() {
                           max={10}
                           step={0.5}
                           value={d.quality}
-                          onChange={(e) =>
-                            updateDraft(d.key, { quality: Number(e.target.value) })
-                          }
+                          onChange={(e) => updateDraft(d.key, { quality: Number(e.target.value) })}
                         />
                       </Field>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-[12.5px] text-[var(--color-fg-muted)]">
+                      <div className="flex items-center justify-between gap-3 h-9">
+                        <span className="text-[13px] font-medium text-[var(--color-fg)]">
                           Mono downmix
                         </span>
                         <Toggle
                           checked={d.mono}
                           onChange={(v) => updateDraft(d.key, { mono: v })}
+                          ariaLabel="Mono downmix"
                         />
                       </div>
                     </div>
@@ -285,22 +260,17 @@ export function AdvancedMode() {
       </section>
 
       <section className="space-y-4">
-        <div>
-          <div className="text-[10.5px] uppercase tracking-[0.14em] font-mono text-[var(--color-accent-amber)] mb-1.5">
-            // step 02
-          </div>
-          <h2 className="text-[18px] font-semibold tracking-[-0.01em]">Pack details</h2>
-        </div>
+        <StepHeading step={2} title="Name the pack" />
         <Card className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="Pack name">
             <Input value={packName} onChange={(e) => setPackName(e.target.value)} />
           </Field>
-          <Field label="Pack icon (optional)" hint="64×64 png">
+          <Field label="Pack icon" hint="optional, 64×64 PNG">
             <FileDrop
               compact
               accept="image/png"
               onFiles={(f) => setIconFile(f[0] ?? null)}
-              label={iconFile ? iconFile.name : 'Drop a 64×64 PNG'}
+              label={iconFile ? iconFile.name : 'Choose an image'}
             />
           </Field>
           <Field label="Description">
@@ -310,46 +280,36 @@ export function AdvancedMode() {
               rows={3}
             />
           </Field>
-          <div className="flex flex-col justify-end space-y-3">
-            <div className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg-raised)] px-3 py-2">
+          <div className="self-end space-y-3">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-[13px] text-[var(--color-fg)]">Emit datapack</div>
-                <div className="text-[11.5px] text-[var(--color-fg-subtle)]">
-                  Requires 1.20.5+ (pack_format 32). Adds <code>jukebox_song</code>{' '}
-                  entries.
+                <div className="text-[13px] font-medium text-[var(--color-fg)]">Include datapack</div>
+                <div className="text-[12.5px] text-[var(--color-fg-subtle)]">
+                  Adds <code className="font-mono">jukebox_song</code> entries. Needs 1.20.5+.
                 </div>
               </div>
               <Toggle
                 checked={emitDatapack && version.packFormat >= 32}
                 onChange={setEmitDatapack}
                 disabled={version.packFormat < 32}
+                ariaLabel="Include datapack"
               />
             </div>
-            <div className="text-[11.5px] text-[var(--color-fg-subtle)]">
-              Targeting {version.id} (<code className="font-mono">pack_format {version.packFormat}</code>).
-              {version.packFormat < 32 && ' Older versions need a helper mod for disc items.'}
-            </div>
+            <p className="text-[12.5px] text-[var(--color-fg-subtle)]">
+              Targeting {version.id}, pack format {version.packFormat}.
+              {version.packFormat < 32 && ' Older versions need a helper mod to add disc items.'}
+            </p>
           </div>
         </Card>
       </section>
 
-      <section className="sticky bottom-4 z-[var(--z-raised)]">
-        <div className="flex items-center justify-between gap-3 p-4 rounded-[var(--radius-md)] border border-[var(--color-border-hi)] surface-glass shadow-[0_8px_32px_-12px_oklch(0_0_0_/_0.6)]">
-          <div className="text-[11.5px] text-[var(--color-fg-subtle)]">
-            {buildError ? (
-              <span className="text-[var(--color-danger)] font-medium">
-                Error: {buildError}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-                Audio, zip building, and datapack all happen locally.
-              </span>
-            )}
-          </div>
-          <BuildButton onClick={runBuild} disabled={!canBuild} progress={progress} />
-        </div>
-      </section>
+      <BuildBar
+        note="Audio, zip and datapack are all built in your browser."
+        error={buildError}
+        onBuild={runBuild}
+        disabled={!canBuild}
+        progress={progress}
+      />
     </div>
   );
 }
