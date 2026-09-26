@@ -37,7 +37,7 @@ export default function About() {
           </Row>
           <Row term="Feedback">Issues and pull requests are welcome</Row>
           <Row term="Minecraft art">
-            Disc and jukebox textures are Mojang's, via the{' '}
+            Disc, jukebox and painting textures are Mojang's, via the{' '}
             <a href="https://minecraft.wiki" target="_blank" rel="noreferrer" className="link">
               Minecraft Wiki
             </a>

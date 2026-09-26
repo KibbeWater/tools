@@ -7,6 +7,8 @@ import { getVersion, giveCommand, packMeta, type McVersion } from './discs';
 import { duplicateCustomIds, trackLabel, trackProblem, type Project, type Track } from './project';
 import { loadBlob, loadEncoded, saveEncoded } from './storage';
 
+export { downloadBlob, safeFileName } from '@/lib/minecraft';
+
 export interface BuildProgress {
   current: number;
   total: number;
@@ -189,19 +191,3 @@ function zip(wasm: Awaited<ReturnType<typeof loadMcPackWasm>>, entries: Entry[])
 }
 
 const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v, null, 2));
-
-/** A file name that's safe on every OS, from a pack name. */
-export const safeFileName = (name: string, fallback: string) =>
-  name.replace(/[^a-z0-9_\- ]+/gi, '').trim() || fallback;
-
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5_000);
-}

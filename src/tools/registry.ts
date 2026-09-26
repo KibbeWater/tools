@@ -41,7 +41,24 @@ const minecraftResourcePack: ToolMeta = {
   component: lazy(() => import('./minecraft-resource-pack/route')),
 };
 
-export const tools: readonly ToolMeta[] = [minecraftResourcePack] as const;
+const minecraftPaintings: ToolMeta = {
+  id: 'minecraft-paintings',
+  name: 'Minecraft Painting Pack Builder',
+  tagline: 'Hang your own pictures, export a drop-in pack.',
+  description:
+    'Replace the art on Minecraft paintings with your own images and get back a resource pack zip. Crop each picture to fit, pick how detailed it looks, and on 1.21+ add brand-new paintings of any size.',
+  accent: 'pink',
+  iconName: 'palette',
+  image: {
+    src: `${import.meta.env.BASE_URL}images/minecraft/painting.png`,
+    alt: 'Minecraft painting',
+  },
+  path: '/minecraft-paintings',
+  status: 'beta',
+  component: lazy(() => import('./minecraft-paintings/route')),
+};
+
+export const tools: readonly ToolMeta[] = [minecraftResourcePack, minecraftPaintings] as const;
 
 export const toolById = (id: string): ToolMeta | undefined =>
   tools.find((t) => t.id === id);

@@ -2,7 +2,8 @@
 // tool built carry a manifest with disc names; any other music pack still
 // imports, using the disc audio it finds under assets/*/sounds/records/.
 import { loadMcPackWasm } from '../hooks/useMcPackWasm';
-import { DISCS, MC_VERSIONS, LATEST_VERSION, type PackFormat } from './discs';
+import { releaseForPackMeta } from '@/lib/minecraft';
+import { DISCS } from './discs';
 import {
   DEFAULT_SETTINGS,
   newProject,
@@ -42,7 +43,7 @@ export async function importPack(zipFile: File): Promise<Project> {
 
   const project = newProject(manifest?.name ?? stripExtension(zipFile.name));
   project.description = typeof mcmeta.description === 'string' ? mcmeta.description : project.description;
-  project.versionId = manifest?.versionId ?? versionForFormat(mcmeta).id;
+  project.versionId = manifest?.versionId ?? releaseForPackMeta(mcmeta).id;
 
   const icon = files.get('pack.png');
   if (icon) {
@@ -105,12 +106,4 @@ function parseJson(bytes: Uint8Array | undefined): any {
   } catch {
     return undefined;
   }
-}
-
-/** Newest version whose resource format matches the pack's, else the latest. */
-function versionForFormat(pack: { pack_format?: number; min_format?: PackFormat; max_format?: PackFormat }) {
-  const major = (f: PackFormat | undefined) => (Array.isArray(f) ? f[0] : f);
-  const want = major(pack.max_format) ?? pack.pack_format;
-  const match = [...MC_VERSIONS].reverse().find((v) => major(v.resourceFormat) === want);
-  return match ?? LATEST_VERSION;
 }

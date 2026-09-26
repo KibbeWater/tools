@@ -7,14 +7,32 @@ import { faTrashCan } from '@fortawesome/free-solid-svg-icons/faTrashCan';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/cn';
-import type { PackProjectApi } from '../hooks/usePackProject';
 
-interface ProjectMenuProps {
-  api: PackProjectApi;
+interface SavedPack {
+  id: string;
+  name: string;
+  updatedAt: number;
+}
+
+/** The slice of a tool's project hook the menu needs. */
+export interface PackProjectMenuApi<P extends SavedPack> {
+  project: P | null;
+  projects: P[];
+  createProject: () => Promise<void>;
+  openProject: (id: string) => Promise<void>;
+  importPack: (file: File) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+}
+
+interface PackProjectMenuProps<P extends SavedPack> {
+  api: PackProjectMenuApi<P>;
+  /** What a saved pack holds, e.g. "3 discs". */
+  describe: (p: P) => string;
   onSwitched: () => void;
 }
 
-export function ProjectMenu({ api, onSwitched }: ProjectMenuProps) {
+/** Switch between packs saved in this browser, start a new one, or reopen a pack zip. */
+export function PackProjectMenu<P extends SavedPack>({ api, describe, onSwitched }: PackProjectMenuProps<P>) {
   const [open, setOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +112,7 @@ export function ProjectMenu({ api, onSwitched }: ProjectMenuProps) {
                       >
                         <div className="truncate text-[14px] font-medium">{p.name || 'Untitled pack'}</div>
                         <div className="text-[12px] text-[var(--color-fg-subtle)]">
-                          {p.tracks.length} {p.tracks.length === 1 ? 'disc' : 'discs'} · edited {timeAgo(p.updatedAt)}
+                          {describe(p)} · edited {timeAgo(p.updatedAt)}
                         </div>
                       </button>
                       {confirmId === p.id ? (

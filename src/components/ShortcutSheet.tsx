@@ -9,7 +9,8 @@ interface ShortcutSheetProps {
 const globals: { keys: string; description: string }[] = [
   { keys: 'Mod+K', description: 'Open command palette' },
   { keys: 'g h', description: 'Go to Home' },
-  { keys: 'g m', description: 'Go to Minecraft tool' },
+  { keys: 'g m', description: 'Go to Minecraft Resource Pack Builder' },
+  { keys: 'g p', description: 'Go to Minecraft Painting Pack Builder' },
   { keys: '/', description: 'Focus search on current page' },
   { keys: '?', description: 'Show this list' },
   { keys: 'Escape', description: 'Close the open panel' },
@@ -20,12 +21,18 @@ const mcTool: { keys: string; description: string }[] = [
   { keys: 'b', description: 'Build pack' },
 ];
 
+const paintingTool: { keys: string; description: string }[] = [
+  { keys: 'n', description: 'Add images' },
+  { keys: 'b', description: 'Build pack' },
+];
+
 export function ShortcutSheet({ open, onClose }: ShortcutSheetProps) {
   return (
     <Sheet open={open} onClose={onClose} title="Keyboard shortcuts">
       <div className="space-y-8">
         <Group title="Everywhere" items={globals} />
         <Group title="Minecraft Resource Pack Builder" items={mcTool} />
+        <Group title="Minecraft Painting Pack Builder" items={paintingTool} />
       </div>
     </Sheet>
   );
