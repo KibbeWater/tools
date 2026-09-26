@@ -16,7 +16,7 @@ const globals: { keys: string; description: string }[] = [
 ];
 
 const mcTool: { keys: string; description: string }[] = [
-  { keys: 'n', description: 'Replace a disc' },
+  { keys: 'n', description: 'Add audio files' },
   { keys: 'b', description: 'Build pack' },
 ];
 

@@ -35,8 +35,10 @@ export async function encodePlanarToOgg(
     vbrQuality: clamp(opts.quality ?? 5, -1, 10),
   });
 
-  const head = encoder.encode(channels.slice(0, ch));
-  const tail = encoder.finalize();
+  // encode() and finalize() return views into the encoder's WASM memory, which
+  // the next call reuses. Copy the first chunk before finalize() overwrites it.
+  const head = encoder.encode(channels.slice(0, ch)).slice();
+  const tail = encoder.finalize().slice();
   const out = new Uint8Array(head.length + tail.length);
   out.set(head, 0);
   out.set(tail, head.length);

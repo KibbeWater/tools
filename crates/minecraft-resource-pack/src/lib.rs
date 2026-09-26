@@ -5,7 +5,7 @@
 //     - decode arbitrary audio (mp3/wav/flac/aac/m4a/ogg) → interleaved f32 PCM
 //     - apply trim / gain / optional mono downmix / simple linear resample
 //     - return PCM + channel/rate metadata to JS for OGG Vorbis encoding
-//     - pack a set of (path, bytes) entries into a single zip blob
+//     - pack a set of (path, bytes) entries into a single zip blob, and read one back
 //
 //   JS side:
 //     - takes the decoded PCM and runs wasm-media-encoders to produce OGG Vorbis
@@ -16,7 +16,7 @@
 
 use std::io::Cursor;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::formats::FormatOptions;
@@ -33,7 +33,7 @@ pub fn start() {
     console_error_panic_hook::set_once();
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize)]
 pub struct DecodeOptions {
     /// Downmix to mono if true. Otherwise preserve original channels.
     #[serde(default)]
@@ -75,7 +75,6 @@ impl Default for DecodeOptions {
     }
 }
 
-#[derive(Debug, Serialize)]
 pub struct DecodedAudio {
     /// Per-channel planar PCM (already trimmed/processed).
     pub channels: Vec<Vec<f32>>,
@@ -108,8 +107,19 @@ pub fn decode_audio(bytes: &[u8], options: JsValue) -> Result<JsValue, JsValue> 
             .map_err(|e| JsValue::from_str(&format!("bad options: {e}")))?
     };
     let decoded = decode_audio_inner(bytes, opts).map_err(JsValue::from)?;
-    serde_wasm_bindgen::to_value(&decoded)
-        .map_err(|e| JsValue::from_str(&format!("serialize error: {e}")))
+
+    // Built by hand rather than via serde: serde_wasm_bindgen would emit
+    // snake_case keys and plain number arrays, but the JS side expects
+    // `{ channels: Float32Array[], sampleRate, durationSec }`.
+    let channels = js_sys::Array::new();
+    for ch in &decoded.channels {
+        channels.push(&js_sys::Float32Array::from(ch.as_slice()));
+    }
+    let out = js_sys::Object::new();
+    js_sys::Reflect::set(&out, &"channels".into(), &channels)?;
+    js_sys::Reflect::set(&out, &"sampleRate".into(), &decoded.sample_rate.into())?;
+    js_sys::Reflect::set(&out, &"durationSec".into(), &decoded.duration_sec.into())?;
+    Ok(out.into())
 }
 
 fn decode_audio_inner(bytes: &[u8], opts: DecodeOptions) -> Result<DecodedAudio, DecodeError> {
@@ -261,43 +271,55 @@ fn decode_audio_inner(bytes: &[u8], opts: DecodeOptions) -> Result<DecodedAudio,
 
 // ---------- Zip building ----------
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ZipEntryInput {
-    pub path: String,
-    pub bytes: Vec<u8>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BuildZipInput {
-    pub entries: Vec<ZipEntryInput>,
-}
-
-/// Build a zip archive from a list of `{ path, bytes }` entries.
+/// Build a zip archive. `paths[i]` is the archive path of `files[i]` (a `Uint8Array`).
 /// Returns the raw zip bytes as a `Uint8Array`.
 #[wasm_bindgen]
-pub fn build_zip(input: JsValue) -> Result<js_sys::Uint8Array, JsValue> {
-    let input: BuildZipInput = serde_wasm_bindgen::from_value(input)
-        .map_err(|e| JsValue::from_str(&format!("bad zip input: {e}")))?;
-
+pub fn build_zip(paths: Vec<String>, files: js_sys::Array) -> Result<js_sys::Uint8Array, JsValue> {
+    if paths.len() != files.length() as usize {
+        return Err(JsValue::from_str("build_zip: paths and files differ in length"));
+    }
     let mut buf = Cursor::new(Vec::<u8>::new());
     {
         let mut zip = ZipWriter::new(&mut buf);
         let options = SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated)
             .unix_permissions(0o644);
-        for e in input.entries {
-            zip.start_file(&e.path, options)
-                .map_err(|err| JsValue::from_str(&format!("zip start {}: {err}", e.path)))?;
+        for (i, path) in paths.iter().enumerate() {
+            let bytes = js_sys::Uint8Array::new(&files.get(i as u32)).to_vec();
+            zip.start_file(path.as_str(), options)
+                .map_err(|err| JsValue::from_str(&format!("zip start {path}: {err}")))?;
             use std::io::Write;
-            zip.write_all(&e.bytes)
-                .map_err(|err| JsValue::from_str(&format!("zip write {}: {err}", e.path)))?;
+            zip.write_all(&bytes)
+                .map_err(|err| JsValue::from_str(&format!("zip write {path}: {err}")))?;
         }
         zip.finish()
             .map_err(|err| JsValue::from_str(&format!("zip finish: {err}")))?;
     }
+    Ok(js_sys::Uint8Array::from(buf.into_inner().as_slice()))
+}
 
-    let bytes = buf.into_inner();
-    Ok(js_sys::Uint8Array::from(bytes.as_slice()))
+/// Read every file out of a zip archive.
+/// Returns `{ path: string, bytes: Uint8Array }[]`, skipping directory entries.
+#[wasm_bindgen]
+pub fn read_zip(bytes: &[u8]) -> Result<js_sys::Array, JsValue> {
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))
+        .map_err(|err| JsValue::from_str(&format!("not a zip file: {err}")))?;
+    let out = js_sys::Array::new();
+    for i in 0..archive.len() {
+        let mut file = archive
+            .by_index(i)
+            .map_err(|err| JsValue::from_str(&format!("zip entry {i}: {err}")))?;
+        if file.is_dir() {
+            continue;
+        }
+        let mut data = Vec::with_capacity(file.size() as usize);
+        use std::io::Read;
+        file.read_to_end(&mut data)
+            .map_err(|err| JsValue::from_str(&format!("zip read {}: {err}", file.name())))?;
+        let entry = js_sys::Object::new();
+        js_sys::Reflect::set(&entry, &"path".into(), &file.name().into())?;
+        js_sys::Reflect::set(&entry, &"bytes".into(), &js_sys::Uint8Array::from(data.as_slice()))?;
+        out.push(&entry);
+    }
+    Ok(out)
 }

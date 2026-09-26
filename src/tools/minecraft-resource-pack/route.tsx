@@ -1,10 +1,6 @@
-import { useState, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/cn';
-import { withViewTransition } from '@/lib/view-transitions';
-import { VanillaMode } from './VanillaMode';
-import { AdvancedMode } from './AdvancedMode';
+import { PackEditor } from './components/PackEditor';
 import { useMcPackWasm } from './hooks/useMcPackWasm';
 import { faMusic } from '@fortawesome/free-solid-svg-icons/faMusic';
 import { FloatingNotes } from '@/components/FloatingNotes';
@@ -12,16 +8,8 @@ import { accentVar, toolById } from '@/tools/registry';
 
 const tool = toolById('minecraft-resource-pack')!;
 
-type Mode = 'vanilla' | 'advanced';
-
 export default function McPackRoute() {
-  const [mode, setMode] = useState<Mode>('vanilla');
   const wasm = useMcPackWasm();
-
-  const switchMode = (next: Mode) => {
-    if (next === mode) return;
-    withViewTransition(() => setMode(next));
-  };
 
   return (
     <div
@@ -45,9 +33,9 @@ export default function McPackRoute() {
             {tool.name}
           </h1>
           <p className="mt-4 text-[16px] leading-relaxed text-[color-mix(in_oklch,var(--color-ink)_80%,transparent)]">
-            Replace the vanilla music discs with your own audio, or register new discs
-            with a combined resource pack and datapack. The output is a zip you drop
-            into your resourcepacks folder.
+            Put your own songs on Minecraft's music discs, or add brand-new ones. Drop in
+            audio, preview it, and download a pack you can install right away. Your work
+            saves in this browser, so you can come back and tweak it.
           </p>
           <WasmStatus state={wasm} />
         </div>
@@ -68,24 +56,7 @@ export default function McPackRoute() {
         </div>
       </header>
 
-      <div role="tablist" className="inline-flex gap-1 p-1 rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-bg-raised)] mb-10">
-        <TabButton active={mode === 'vanilla'} onClick={() => switchMode('vanilla')}>
-          Replace vanilla discs
-        </TabButton>
-        <TabButton active={mode === 'advanced'} onClick={() => switchMode('advanced')}>
-          Add custom discs
-        </TabButton>
-      </div>
-
-      <motion.div
-        key={mode}
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-        style={{ viewTransitionName: 'tab-panel' }}
-      >
-        {mode === 'vanilla' ? <VanillaMode /> : <AdvancedMode />}
-      </motion.div>
+      <PackEditor />
 
       <p className="mt-12 text-[12.5px] text-[var(--color-fg-subtle)] max-w-[70ch]">
         Disc and jukebox sprites are Minecraft textures, via the{' '}
@@ -96,39 +67,6 @@ export default function McPackRoute() {
         Microsoft.
       </p>
     </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={cn(
-        'relative h-9 px-4 rounded-full text-[14px] font-semibold transition-colors',
-        active
-          ? 'text-[var(--color-fg)]'
-          : 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]',
-      )}
-    >
-      {active && (
-        <motion.span
-          layoutId="tool-tab-pill"
-          className="absolute inset-0 rounded-full bg-[var(--color-accent)]"
-          transition={{ type: 'spring', stiffness: 600, damping: 36 }}
-        />
-      )}
-      <span className="relative">{children}</span>
-    </button>
   );
 }
 

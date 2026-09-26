@@ -6,7 +6,7 @@ Deployed to https://kibbewater.github.io/tools/.
 
 ## Tools
 
-- **Minecraft Resource Pack Builder** — drop in custom music disc replacements (vanilla mode) or scaffold a full datapack + resource pack for your own custom discs (advanced mode). Supports every pack format from 1.16 through the current release.
+- **Minecraft Resource Pack Builder** — drop audio onto a wall of music discs to replace vanilla tracks or add brand-new discs (a datapack is built alongside for 1.21+). Preview with trim, volume and fades before building; packs autosave in the browser, rebuilds only re-encode what changed, and existing pack zips can be reopened. Supports every pack format from 1.16 through the current release.
 
 ## Stack
 
@@ -33,7 +33,6 @@ src/
     <id>/
       meta.ts
       route.tsx          (default export — route component)
-      {Vanilla,Advanced}Mode.tsx
       components/
       hooks/
       lib/
@@ -70,7 +69,7 @@ Hit `?` anywhere for the full cheatsheet. Highlights:
 - `⌘K` / `Ctrl+K` — command palette
 - `g h` — go home
 - `g m` — go to the Minecraft tool
-- `n` — (on MC tool) pick a disc to replace
+- `n` — (on MC tool) add audio files
 - `b` — (on MC tool) build the pack
 
 ## CI
