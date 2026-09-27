@@ -58,7 +58,24 @@ const minecraftPaintings: ToolMeta = {
   component: lazy(() => import('./minecraft-paintings/route')),
 };
 
-export const tools: readonly ToolMeta[] = [minecraftResourcePack, minecraftPaintings] as const;
+const minecraftServerIcon: ToolMeta = {
+  id: 'minecraft-server-icon',
+  name: 'Minecraft Server Icon Maker',
+  tagline: 'Turn any image into a server-icon.png.',
+  description:
+    'Convert any picture into the 64×64 PNG Minecraft shows next to your server in the Multiplayer list. Crop it to a square, pick smooth or sharp scaling, and preview it in the server list before you download.',
+  accent: 'sky',
+  iconName: 'server',
+  image: {
+    src: `${import.meta.env.BASE_URL}images/minecraft/server-icon.png`,
+    alt: 'Default Minecraft server icon',
+  },
+  path: '/minecraft-server-icon',
+  status: 'beta',
+  component: lazy(() => import('./minecraft-server-icon/route')),
+};
+
+export const tools: readonly ToolMeta[] = [minecraftResourcePack, minecraftPaintings, minecraftServerIcon] as const;
 
 export const toolById = (id: string): ToolMeta | undefined =>
   tools.find((t) => t.id === id);

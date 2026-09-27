@@ -20,6 +20,7 @@ export default function Root() {
   useHotkeySequence(['G', 'H'], () => goto('/'));
   useHotkeySequence(['G', 'M'], () => goto('/minecraft-resource-pack'));
   useHotkeySequence(['G', 'P'], () => goto('/minecraft-paintings'));
+  useHotkeySequence(['G', 'S'], () => goto('/minecraft-server-icon'));
   useHotkey({ key: '/', shift: true }, (e) => {
     e.preventDefault();
     setShortcutsOpen((o) => !o);

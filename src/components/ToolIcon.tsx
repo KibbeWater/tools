@@ -2,6 +2,7 @@ import { faBox } from '@fortawesome/free-solid-svg-icons/faBox';
 import { faCompactDisc } from '@fortawesome/free-solid-svg-icons/faCompactDisc';
 import { faMusic } from '@fortawesome/free-solid-svg-icons/faMusic';
 import { faPalette } from '@fortawesome/free-solid-svg-icons/faPalette';
+import { faServer } from '@fortawesome/free-solid-svg-icons/faServer';
 import { faWrench } from '@fortawesome/free-solid-svg-icons/faWrench';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { Icon } from '@/components/ui/Icon';
@@ -10,6 +11,7 @@ const map: Record<string, IconDefinition> = {
   'compact-disc': faCompactDisc,
   music: faMusic,
   palette: faPalette,
+  server: faServer,
   box: faBox,
   wrench: faWrench,
 };

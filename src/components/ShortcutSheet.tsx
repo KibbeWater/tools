@@ -11,6 +11,7 @@ const globals: { keys: string; description: string }[] = [
   { keys: 'g h', description: 'Go to Home' },
   { keys: 'g m', description: 'Go to Minecraft Resource Pack Builder' },
   { keys: 'g p', description: 'Go to Minecraft Painting Pack Builder' },
+  { keys: 'g s', description: 'Go to Minecraft Server Icon Maker' },
   { keys: '/', description: 'Focus search on current page' },
   { keys: '?', description: 'Show this list' },
   { keys: 'Escape', description: 'Close the open panel' },
@@ -26,6 +27,11 @@ const paintingTool: { keys: string; description: string }[] = [
   { keys: 'b', description: 'Build pack' },
 ];
 
+const serverIconTool: { keys: string; description: string }[] = [
+  { keys: 'n', description: 'Choose an image' },
+  { keys: 'd', description: 'Download server-icon.png' },
+];
+
 export function ShortcutSheet({ open, onClose }: ShortcutSheetProps) {
   return (
     <Sheet open={open} onClose={onClose} title="Keyboard shortcuts">
@@ -33,6 +39,7 @@ export function ShortcutSheet({ open, onClose }: ShortcutSheetProps) {
         <Group title="Everywhere" items={globals} />
         <Group title="Minecraft Resource Pack Builder" items={mcTool} />
         <Group title="Minecraft Painting Pack Builder" items={paintingTool} />
+        <Group title="Minecraft Server Icon Maker" items={serverIconTool} />
       </div>
     </Sheet>
   );

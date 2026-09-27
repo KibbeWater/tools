@@ -5,10 +5,10 @@ import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Field, Input } from '@/components/ui/Input';
+import { Segmented } from '@/components/ui/Segmented';
 import { Select } from '@/components/ui/Select';
 import { Slider } from '@/components/ui/Slider';
 import { Toggle } from '@/components/ui/Toggle';
-import { cn } from '@/lib/cn';
 import {
   getPainting,
   giveCommand,
@@ -241,36 +241,6 @@ export function ArtPanel({ art, version, duplicateId, onChange, onReplaceFile, o
 
 /** Keep typed block counts in range; an empty field falls back to 1. */
 const blockCount = (v: string) => Math.min(MAX_CUSTOM_BLOCKS, Math.max(1, Math.round(Number(v) || 1)));
-
-function Segmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div role="radiogroup" className="inline-flex shrink-0 rounded-full border-2 border-[var(--color-ink)] bg-[var(--color-bg-raised)] p-0.5">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="radio"
-          aria-checked={value === o.value}
-          onClick={() => onChange(o.value)}
-          className={cn(
-            'h-7 rounded-full px-3 text-[12.5px] font-medium transition-colors',
-            value === o.value ? 'bg-[var(--color-accent)] text-[var(--color-accent-fg)]' : 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]',
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function GiveCommand({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);

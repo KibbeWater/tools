@@ -8,6 +8,7 @@ Deployed to https://kibbewater.github.io/tools/.
 
 - **Minecraft Resource Pack Builder** — drop audio onto a wall of music discs to replace vanilla tracks or add brand-new discs (a datapack is built alongside for 1.21+). Preview with trim, volume and fades before building; packs autosave in the browser, rebuilds only re-encode what changed, and existing pack zips can be reopened. Supports every pack format from 1.16 through the current release.
 - **Minecraft Painting Pack Builder** — drop images onto a to-scale wall of every vanilla painting; files named after a painting go there, the rest land on the free painting closest in shape. Crop with a draggable frame, pick the detail (16–256 px per block) and smooth or sharp scaling, and on 1.21+ add brand-new paintings up to 16×16 blocks (a datapack is built alongside). Rendering is done in Rust so results match across browsers; packs autosave and can be reopened.
+- **Minecraft Server Icon Maker** — turn any image (PNG, JPEG, WebP, GIF, BMP, ICO, SVG, or anything else the browser can open) into the 64×64 `server-icon.png` Minecraft shows in the Multiplayer list. Crop to a square, fit or stretch, pick smooth or sharp scaling and a background, and preview it in a mock server list. Also copies the icon as a base64 `favicon` value.
 
 ## Stack
 
@@ -71,8 +72,10 @@ Hit `?` anywhere for the full cheatsheet. Highlights:
 - `g h` — go home
 - `g m` — go to the Minecraft Resource Pack Builder
 - `g p` — go to the Minecraft Painting Pack Builder
+- `g s` — go to the Minecraft Server Icon Maker
 - `n` — (on a Minecraft tool) add audio files / images
-- `b` — (on a Minecraft tool) build the pack
+- `b` — (on a pack builder) build the pack
+- `d` — (on the server icon maker) download `server-icon.png`
 
 ## CI
 

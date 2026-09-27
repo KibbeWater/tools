@@ -119,6 +119,13 @@ a.link:hover {
   image-rendering: pixelated;
 }
 
+/* Checkerboard behind images that may be transparent. */
+.checker {
+  background-color: var(--color-bg-raised);
+  background-image: conic-gradient(var(--color-surface-hi) 25%, transparent 0 50%, var(--color-surface-hi) 0 75%, transparent 0);
+  background-size: 16px 16px;
+}
+
 /* Floating notes: rise, drift and fade. `.notes-hover` only plays while its
    `.group` ancestor is hovered; `.notes-always` loops continuously. */
 @keyframes note-rise {

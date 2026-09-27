@@ -275,6 +275,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "minecraft-server-icon"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "image",
+ "js-sys",
+ "serde",
+ "serde-wasm-bindgen",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
