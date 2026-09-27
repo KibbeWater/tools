@@ -62,6 +62,9 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      - name: Run tests
+        run: npm test
+
       - name: Build Vite app
         run: npm run build
 

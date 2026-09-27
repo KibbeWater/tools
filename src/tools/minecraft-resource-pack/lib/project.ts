@@ -1,6 +1,7 @@
-// A pack project: everything needed to rebuild a pack, minus the audio bytes
-// themselves (those live in IndexedDB, keyed by `audioId`).
-import { DISCS, getVersion, LATEST_VERSION, supportsCustomDiscs, type McVersion } from './discs';
+// Music discs in a pack: everything needed to rebuild them, minus the audio
+// bytes themselves (those live in IndexedDB, keyed by `audioId`).
+import type { Pack } from '@/tools/minecraft-pack/lib/pack';
+import { DISCS, getVersion, supportsCustomDiscs, type McVersion } from './discs';
 
 export interface AudioSettings {
   gainDb: number;
@@ -48,35 +49,10 @@ export interface CustomTrack extends TrackBase {
 
 export type Track = VanillaTrack | CustomTrack;
 
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  versionId: string;
-  iconId: string | null;
-  tracks: Track[];
-  createdAt: number;
-  updatedAt: number;
-}
+/** The parts of a pack the disc helpers read. */
+export type Project = Pick<Pack, 'name' | 'versionId' | 'tracks'>;
 
-export function newProject(name = 'My Music Pack'): Project {
-  const now = Date.now();
-  return {
-    id: uid(),
-    name,
-    description: 'Custom music discs, made with mellow llama.',
-    versionId: LATEST_VERSION.id,
-    iconId: null,
-    tracks: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-export function uid(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
+export { uid } from '@/tools/minecraft-pack/lib/pack';
 
 /** Lowercase `[a-z0-9_]`, the only characters Minecraft allows in ids. */
 export function sanitizeId(s: string): string {

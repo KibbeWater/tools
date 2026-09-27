@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import { createBrowserRouter, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import Root from '@/layouts/Root';
 import Home from '@/pages/Home';
 import About from '@/pages/About';
 import NotFound from '@/pages/NotFound';
-import { tools } from '@/tools/registry';
+import { toolRedirects, toolRoutes } from '@/tools/registry';
 
 function ToolBoundary() {
   return (
@@ -29,11 +29,15 @@ export const router = createBrowserRouter(
         { path: '/about', element: <About /> },
         {
           element: <ToolBoundary />,
-          children: tools.map((t) => ({
+          children: toolRoutes.map((t) => ({
             path: t.path.replace(/^\//, ''),
             element: <t.component />,
           })),
         },
+        ...toolRedirects.map((r) => ({
+          path: r.from.replace(/^\//, ''),
+          element: <Navigate to={r.to} replace />,
+        })),
         { path: '*', element: <NotFound /> },
       ],
     },

@@ -43,6 +43,9 @@ export const MC_RELEASES: McRelease[] = RELEASES.map((r, order) => ({ ...r, orde
 export const FIRST_RELEASE = MC_RELEASES[0]!;
 export const LATEST_RELEASE = MC_RELEASES[MC_RELEASES.length - 1]!;
 
+/** The release labelled `id`, or the latest if it's unknown. */
+export const getRelease = (id: string): McRelease => MC_RELEASES.find((r) => r.id === id) ?? LATEST_RELEASE;
+
 /** Position of a release id in MC_RELEASES, or -1 if unknown. */
 export const releaseOrder = (id: string) => MC_RELEASES.findIndex((r) => r.id === id);
 

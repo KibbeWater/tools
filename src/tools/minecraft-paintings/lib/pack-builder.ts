@@ -1,16 +1,12 @@
-// Builds a project into a resource pack zip (plus a datapack zip when it has
-// custom paintings). Each image is cropped and resampled in Rust.
-import { packMeta } from '@/lib/minecraft';
+// The painting part of a pack build: textures for the resource pack, painting
+// variants and the placeable tag for the datapack. Each image is cropped and
+// resampled in Rust.
+import type { BuildProgress, PackEntry } from '@/tools/minecraft-pack/lib/build';
+import type { Pack } from '@/tools/minecraft-pack/lib/pack';
+import { loadBlob } from '@/tools/minecraft-pack/lib/storage';
 import { loadPaintingsWasm } from '../hooks/usePaintingsWasm';
 import { getVersion, giveCommand, supportsTitleAndAuthor, type McVersion } from './paintings';
-import { artLabel, artProblem, cropRect, duplicateCustomIds, outputSize, type Art, type Project } from './project';
-import { loadBlob } from './storage';
-
-export interface BuildProgress {
-  current: number;
-  total: number;
-  message: string;
-}
+import { artLabel, artProblem, cropRect, duplicateCustomIds, outputSize, type Art } from './project';
 
 export interface CustomPainting {
   label: string;
@@ -18,107 +14,94 @@ export interface CustomPainting {
   give: string;
 }
 
-export interface BuildResult {
-  resourcePack: Blob;
-  /** Only present when the project has custom paintings. */
-  datapack: Blob | null;
-  count: number;
+export interface PaintingFiles {
+  rp: PackEntry[];
+  dp: PackEntry[];
   customPaintings: CustomPainting[];
 }
 
-/** Written into every resource pack so the tool can reopen it later. */
-export const MANIFEST_PATH = 'mellow-llama.json';
+/** How paintings are recorded in the pack's `mellow-llama.json`. */
+export type PaintingManifestEntry =
+  | { kind: 'vanilla'; paintingId: string; fileName: string }
+  | {
+      kind: 'custom';
+      namespace: string;
+      id: string;
+      title: string;
+      author: string;
+      width: number;
+      height: number;
+      placeable: boolean;
+      fileName: string;
+    };
 
-export interface PackManifest {
-  version: 1;
-  tool: 'minecraft-paintings';
-  name: string;
-  versionId: string;
-  art: (
-    | { kind: 'vanilla'; paintingId: string; fileName: string }
-    | {
-        kind: 'custom';
-        namespace: string;
-        id: string;
-        title: string;
-        author: string;
-        width: number;
-        height: number;
-        placeable: boolean;
-        fileName: string;
-      }
-  )[];
+/** Where the painting sprite `ns:path` lives. */
+const textureFile = (ns: string, path: string) => `assets/${ns}/textures/painting/${path}.png`;
+
+/** Problems that would stop the paintings from building, one line per painting. */
+export function paintingProblems(pack: Pick<Pack, 'versionId' | 'art'>): string[] {
+  const version = getVersion(pack.versionId);
+  const dupes = duplicateCustomIds(pack.art);
+  return pack.art.flatMap((a) => {
+    const p = artProblem(a, version);
+    if (p) return [`${artLabel(a)}: ${p}`];
+    if (a.kind === 'custom' && dupes.has(`${a.namespace}:${a.id}`)) {
+      return [`${artLabel(a)}: ${a.namespace}:${a.id} is used by another painting`];
+    }
+    return [];
+  });
 }
 
-type ProgressCb = (p: BuildProgress) => void;
-
-export const vanillaTexturePath = (id: string) => `assets/minecraft/textures/painting/${id}.png`;
-export const customTexturePath = (ns: string, id: string) => `assets/${ns}/textures/painting/${id}.png`;
-
-export async function buildPack(project: Project, onProgress: ProgressCb = () => {}): Promise<BuildResult> {
-  const version = getVersion(project.versionId);
-  const dupes = duplicateCustomIds(project.art);
-  const problems = project.art
-    .map((a) => {
-      const p = artProblem(a, version);
-      if (p) return `${artLabel(a)}: ${p}`;
-      if (a.kind === 'custom' && dupes.has(`${a.namespace}:${a.id}`)) {
-        return `${artLabel(a)}: ${a.namespace}:${a.id} is used by another painting`;
-      }
-      return null;
-    })
-    .filter(Boolean);
-  if (problems.length) throw new Error(problems.join('; '));
-  if (project.art.length === 0) throw new Error('Add at least one painting first');
-
-  const wasm = await loadPaintingsWasm();
-  const total = project.art.length;
-  const rp: Entry[] = [];
-  const dp: Entry[] = [];
+/**
+ * Render each painting and lay out its files. `step` numbers progress across
+ * the whole build. With `randomName`, new paintings get random texture names;
+ * vanilla ones can't, since the game looks those up by name.
+ */
+export async function buildPaintings(
+  pack: Pack,
+  onProgress: (p: BuildProgress) => void,
+  step: { offset: number; total: number },
+  randomName: (() => string) | null = null,
+): Promise<PaintingFiles> {
+  const version = getVersion(pack.versionId);
+  const rp: PackEntry[] = [];
+  const dp: PackEntry[] = [];
   const placeable: string[] = [];
   const customPaintings: CustomPainting[] = [];
+  if (pack.art.length === 0) return { rp, dp, customPaintings };
 
-  for (const [i, a] of project.art.entries()) {
+  const wasm = await loadPaintingsWasm();
+  for (const [i, a] of pack.art.entries()) {
     const label = artLabel(a);
-    onProgress({ current: i, total, message: `Painting ${label}` });
+    onProgress({ current: step.offset + i, total: step.total, message: `Painting ${label}` });
     const png = await render(wasm, a);
 
     if (a.kind === 'vanilla') {
-      rp.push({ path: vanillaTexturePath(a.paintingId), bytes: png });
+      rp.push({ path: textureFile('minecraft', a.paintingId), bytes: png });
       continue;
     }
 
-    rp.push({ path: customTexturePath(a.namespace, a.id), bytes: png });
+    // The sprite name is independent of the variant id, so it can be anything.
+    const sprite = randomName ? randomName() : a.id;
+    rp.push({ path: textureFile(a.namespace, sprite), bytes: png });
     const variantId = `${a.namespace}:${a.id}`;
-    dp.push({ path: `data/${a.namespace}/painting_variant/${a.id}.json`, bytes: json(variantJson(a, version)) });
+    dp.push({
+      path: `data/${a.namespace}/painting_variant/${a.id}.json`,
+      bytes: json(variantJson(a, `${a.namespace}:${sprite}`, version)),
+    });
     if (a.placeable) placeable.push(variantId);
     customPaintings.push({ label, variantId, give: giveCommand(version, variantId) });
   }
 
-  onProgress({ current: total, total, message: 'Zipping' });
-
-  const icon = project.iconId ? await loadBlob(project.iconId) : undefined;
-  const iconBytes = icon ? new Uint8Array(await icon.arrayBuffer()) : null;
-
-  rp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(version.resourceFormat, project.description) }) });
-  rp.push({ path: MANIFEST_PATH, bytes: json(manifestFor(project)) });
-  if (iconBytes) rp.push({ path: 'pack.png', bytes: iconBytes });
-
-  let datapack: Blob | null = null;
-  if (dp.length) {
-    if (placeable.length) {
-      // `replace: false` merges with vanilla and other packs instead of overwriting the tag.
-      dp.push({
-        path: 'data/minecraft/tags/painting_variant/placeable.json',
-        bytes: json({ replace: false, values: placeable }),
-      });
-    }
-    dp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(dataFormatOf(version), project.description) }) });
-    if (iconBytes) dp.push({ path: 'pack.png', bytes: iconBytes });
-    datapack = zip(wasm, dp);
+  if (placeable.length) {
+    // `replace: false` merges with vanilla and other packs instead of overwriting the tag.
+    dp.push({
+      path: 'data/minecraft/tags/painting_variant/placeable.json',
+      bytes: json({ replace: false, values: placeable }),
+    });
   }
 
-  return { resourcePack: zip(wasm, rp), datapack, count: total, customPaintings };
+  return { rp, dp, customPaintings };
 }
 
 type Wasm = Awaited<ReturnType<typeof loadPaintingsWasm>>;
@@ -143,9 +126,9 @@ async function render(wasm: Wasm, a: Art): Promise<Uint8Array> {
   }
 }
 
-function variantJson(a: Extract<Art, { kind: 'custom' }>, version: McVersion): Record<string, unknown> {
+function variantJson(a: Extract<Art, { kind: 'custom' }>, assetId: string, version: McVersion): Record<string, unknown> {
   const out: Record<string, unknown> = {
-    asset_id: `${a.namespace}:${a.id}`,
+    asset_id: assetId,
     width: a.width,
     height: a.height,
   };
@@ -157,46 +140,22 @@ function variantJson(a: Extract<Art, { kind: 'custom' }>, version: McVersion): R
   return out;
 }
 
-function manifestFor(p: Project): PackManifest {
-  return {
-    version: 1,
-    tool: 'minecraft-paintings',
-    name: p.name,
-    versionId: p.versionId,
-    art: p.art.map((a) =>
-      a.kind === 'vanilla'
-        ? { kind: 'vanilla', paintingId: a.paintingId, fileName: a.fileName }
-        : {
-            kind: 'custom',
-            namespace: a.namespace,
-            id: a.id,
-            title: a.title,
-            author: a.author,
-            width: a.width,
-            height: a.height,
-            placeable: a.placeable,
-            fileName: a.fileName,
-          },
-    ),
-  };
-}
-
-function dataFormatOf(v: McVersion) {
-  if (v.dataFormat === undefined) throw new Error(`Minecraft ${v.id} has no custom painting support`);
-  return v.dataFormat;
-}
-
-interface Entry {
-  path: string;
-  bytes: Uint8Array;
-}
-
-function zip(wasm: Wasm, entries: Entry[]): Blob {
-  const bytes = wasm.build_zip(
-    entries.map((e) => e.path),
-    entries.map((e) => e.bytes),
+export function paintingManifest(art: Art[]): PaintingManifestEntry[] {
+  return art.map((a) =>
+    a.kind === 'vanilla'
+      ? { kind: 'vanilla', paintingId: a.paintingId, fileName: a.fileName }
+      : {
+          kind: 'custom',
+          namespace: a.namespace,
+          id: a.id,
+          title: a.title,
+          author: a.author,
+          width: a.width,
+          height: a.height,
+          placeable: a.placeable,
+          fileName: a.fileName,
+        },
   );
-  return new Blob([bytes as BlobPart], { type: 'application/zip' });
 }
 
 const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v, null, 2));

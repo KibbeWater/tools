@@ -1,9 +1,9 @@
-// A painting pack project: everything needed to rebuild a pack, minus the
-// image bytes themselves (those live in IndexedDB, keyed by `imageId`).
+// Paintings in a pack: everything needed to rebuild them, minus the image
+// bytes themselves (those live in IndexedDB, keyed by `imageId`).
+import type { Pack } from '@/tools/minecraft-pack/lib/pack';
 import {
   getPainting,
   getVersion,
-  LATEST_VERSION,
   MAX_CUSTOM_BLOCKS,
   supportsCustomPaintings,
   type McVersion,
@@ -75,35 +75,10 @@ export interface CustomArt extends ArtBase {
 
 export type Art = VanillaArt | CustomArt;
 
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  versionId: string;
-  iconId: string | null;
-  art: Art[];
-  createdAt: number;
-  updatedAt: number;
-}
+/** The parts of a pack the painting helpers read. */
+export type Project = Pick<Pack, 'name' | 'versionId' | 'art'>;
 
-export function newProject(name = 'My Painting Pack'): Project {
-  const now = Date.now();
-  return {
-    id: uid(),
-    name,
-    description: 'Custom paintings, made with mellow llama.',
-    versionId: LATEST_VERSION.id,
-    iconId: null,
-    art: [],
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-export function uid(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
+export { uid } from '@/tools/minecraft-pack/lib/pack';
 
 /** Lowercase `[a-z0-9_]`, the only characters Minecraft allows in ids. */
 export function sanitizeId(s: string): string {

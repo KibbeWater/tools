@@ -1,19 +1,13 @@
-// Builds a project into a resource pack zip (plus a datapack zip when it has
-// custom discs). Encodes are cached per track, so rebuilding after a small
-// change only re-encodes the tracks that changed.
+// The music disc part of a pack build: disc audio and sounds.json for the
+// resource pack, jukebox songs for the datapack. Encodes are cached per track,
+// so rebuilding after a small change only re-encodes the tracks that changed.
+import type { BuildProgress, PackEntry } from '@/tools/minecraft-pack/lib/build';
+import type { Pack } from '@/tools/minecraft-pack/lib/pack';
+import { loadBlob, loadEncoded, saveEncoded } from '@/tools/minecraft-pack/lib/storage';
 import { loadMcPackWasm } from '../hooks/useMcPackWasm';
 import { encodePlanarToOgg } from './audio-encoder';
-import { getVersion, giveCommand, packMeta, type McVersion } from './discs';
-import { duplicateCustomIds, trackLabel, trackProblem, type Project, type Track } from './project';
-import { loadBlob, loadEncoded, saveEncoded } from './storage';
-
-export { downloadBlob, safeFileName } from '@/lib/minecraft';
-
-export interface BuildProgress {
-  current: number;
-  total: number;
-  message: string;
-}
+import { getVersion, giveCommand } from './discs';
+import { duplicateCustomIds, trackLabel, trackProblem, type Track } from './project';
 
 export interface CustomSong {
   label: string;
@@ -21,32 +15,21 @@ export interface CustomSong {
   give: string;
 }
 
-export interface BuildResult {
-  resourcePack: Blob;
-  /** Only present when the project has custom discs. */
-  datapack: Blob | null;
+export interface DiscFiles {
+  rp: PackEntry[];
+  dp: PackEntry[];
   encodedCount: number;
   reusedCount: number;
   customSongs: CustomSong[];
 }
 
-/** Written into every resource pack so the tool can reopen it later. */
-export const MANIFEST_PATH = 'mellow-llama.json';
+/** How discs are recorded in the pack's `mellow-llama.json`. */
+export type DiscManifestEntry =
+  | { kind: 'vanilla'; discId: string; fileName: string }
+  | { kind: 'custom'; namespace: string; id: string; displayName: string; fileName: string };
 
-export interface PackManifest {
-  version: 1;
-  name: string;
-  versionId: string;
-  tracks: (
-    | { kind: 'vanilla'; discId: string; fileName: string }
-    | { kind: 'custom'; namespace: string; id: string; displayName: string; fileName: string }
-  )[];
-}
-
-type ProgressCb = (p: BuildProgress) => void;
-
-export const vanillaSoundPath = (discId: string) => `assets/minecraft/sounds/records/${discId}.ogg`;
-export const customSoundPath = (ns: string, id: string) => `assets/${ns}/sounds/records/${id}.ogg`;
+/** Where a sound named `path` (relative to `sounds/`, no extension) lives in namespace `ns`. */
+const soundFile = (ns: string, path: string) => `assets/${ns}/sounds/${path}.ogg`;
 
 /**
  * Bump when the decode/encode output changes, so encodes cached by an older
@@ -56,39 +39,49 @@ const ENCODER_REVISION = 2;
 
 const fingerprint = (t: Track) => `r${ENCODER_REVISION}|${t.audioId}|${JSON.stringify(t.settings)}`;
 
-export async function buildPack(project: Project, onProgress: ProgressCb = () => {}): Promise<BuildResult> {
-  const version = getVersion(project.versionId);
-  const dupes = duplicateCustomIds(project.tracks);
-  const problems = project.tracks
-    .map((t) => {
-      const p = trackProblem(t, version);
-      if (p) return `${trackLabel(t)}: ${p}`;
-      if (t.kind === 'custom' && dupes.has(`${t.namespace}:${t.id}`)) {
-        return `${trackLabel(t)}: ${t.namespace}:${t.id} is used by another disc`;
-      }
-      return null;
-    })
-    .filter(Boolean);
-  if (problems.length) throw new Error(problems.join('; '));
-  if (project.tracks.length === 0) throw new Error('Add at least one disc first');
+/** Problems that would stop the discs from building, one line per disc. */
+export function discProblems(pack: Pick<Pack, 'versionId' | 'tracks'>): string[] {
+  const version = getVersion(pack.versionId);
+  const dupes = duplicateCustomIds(pack.tracks);
+  return pack.tracks.flatMap((t) => {
+    const p = trackProblem(t, version);
+    if (p) return [`${trackLabel(t)}: ${p}`];
+    if (t.kind === 'custom' && dupes.has(`${t.namespace}:${t.id}`)) {
+      return [`${trackLabel(t)}: ${t.namespace}:${t.id} is used by another disc`];
+    }
+    return [];
+  });
+}
 
-  const wasm = await loadMcPackWasm();
-  const total = project.tracks.length;
-  const rp: Entry[] = [];
-  const dp: Entry[] = [];
+/**
+ * Encode each disc and lay out its files. `step` numbers progress across the
+ * whole build. With `randomName`, audio is stored under random names and
+ * linked up through sounds.json instead of sitting at the paths vanilla uses.
+ */
+export async function buildDiscs(
+  pack: Pack,
+  onProgress: (p: BuildProgress) => void,
+  step: { offset: number; total: number },
+  randomName: (() => string) | null = null,
+): Promise<DiscFiles> {
+  const version = getVersion(pack.versionId);
+  const rp: PackEntry[] = [];
+  const dp: PackEntry[] = [];
   const sounds: Record<string, Record<string, unknown>> = {};
   const customSongs: CustomSong[] = [];
   let encodedCount = 0;
   let reusedCount = 0;
 
-  for (const [i, t] of project.tracks.entries()) {
+  for (const [i, t] of pack.tracks.entries()) {
     const label = trackLabel(t);
-    let encoded = await loadEncoded(project.id, t.key);
+    const current = step.offset + i;
+    let encoded = await loadEncoded(pack.id, t.key);
     if (encoded && encoded.fingerprint === fingerprint(t)) {
       reusedCount++;
-      onProgress({ current: i, total, message: `${label}: unchanged` });
+      onProgress({ current, total: step.total, message: `${label}: unchanged` });
     } else {
-      onProgress({ current: i, total, message: `Converting ${label}` });
+      onProgress({ current, total: step.total, message: `Converting ${label}` });
+      const wasm = await loadMcPackWasm();
       const file = await loadBlob(t.audioId);
       if (!file) throw new Error(`${label}: the audio file is missing, add it again`);
       const decoded = wasm.decode_audio(new Uint8Array(await file.arrayBuffer()), {
@@ -104,18 +97,29 @@ export async function buildPack(project: Project, onProgress: ProgressCb = () =>
         quality: t.settings.quality,
       });
       encoded = { fingerprint: fingerprint(t), ogg, durationSec: decoded.durationSec };
-      await saveEncoded(project.id, t.key, encoded);
+      await saveEncoded(pack.id, t.key, encoded);
       encodedCount++;
     }
 
     if (t.kind === 'vanilla') {
-      rp.push({ path: vanillaSoundPath(t.discId), bytes: encoded.ogg });
+      if (!randomName) {
+        rp.push({ path: soundFile('minecraft', `records/${t.discId}`), bytes: encoded.ogg });
+        continue;
+      }
+      const name = randomName();
+      rp.push({ path: soundFile('minecraft', name), bytes: encoded.ogg });
+      // `replace` drops vanilla's own entry for the event, so only ours plays.
+      (sounds.minecraft ??= {})[`music_disc.${t.discId}`] = {
+        replace: true,
+        sounds: [{ name: `minecraft:${name}`, stream: true }],
+      };
       continue;
     }
 
-    rp.push({ path: customSoundPath(t.namespace, t.id), bytes: encoded.ogg });
+    const name = randomName ? randomName() : `records/${t.id}`;
+    rp.push({ path: soundFile(t.namespace, name), bytes: encoded.ogg });
     (sounds[t.namespace] ??= {})[`music_disc.${t.id}`] = {
-      sounds: [{ name: `${t.namespace}:records/${t.id}`, stream: true }],
+      sounds: [{ name: `${t.namespace}:${name}`, stream: true }],
     };
     const songId = `${t.namespace}:${t.id}`;
     dp.push({
@@ -131,63 +135,19 @@ export async function buildPack(project: Project, onProgress: ProgressCb = () =>
     customSongs.push({ label, songId, give: giveCommand(version, songId) });
   }
 
-  onProgress({ current: total, total, message: 'Zipping' });
-
   for (const [ns, obj] of Object.entries(sounds)) {
     rp.push({ path: `assets/${ns}/sounds.json`, bytes: json(obj) });
   }
-  const icon = project.iconId ? await loadBlob(project.iconId) : undefined;
-  const iconBytes = icon ? new Uint8Array(await icon.arrayBuffer()) : null;
 
-  rp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(version.resourceFormat, project.description) }) });
-  rp.push({ path: MANIFEST_PATH, bytes: json(manifestFor(project)) });
-  if (iconBytes) rp.push({ path: 'pack.png', bytes: iconBytes });
-
-  let datapack: Blob | null = null;
-  if (dp.length) {
-    dp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(dataFormatOf(version), project.description) }) });
-    if (iconBytes) dp.push({ path: 'pack.png', bytes: iconBytes });
-    datapack = zip(wasm, dp);
-  }
-
-  return {
-    resourcePack: zip(wasm, rp),
-    datapack,
-    encodedCount,
-    reusedCount,
-    customSongs,
-  };
+  return { rp, dp, encodedCount, reusedCount, customSongs };
 }
 
-function manifestFor(p: Project): PackManifest {
-  return {
-    version: 1,
-    name: p.name,
-    versionId: p.versionId,
-    tracks: p.tracks.map((t) =>
-      t.kind === 'vanilla'
-        ? { kind: 'vanilla', discId: t.discId, fileName: t.fileName }
-        : { kind: 'custom', namespace: t.namespace, id: t.id, displayName: t.displayName, fileName: t.fileName },
-    ),
-  };
-}
-
-function dataFormatOf(v: McVersion) {
-  if (v.dataFormat === undefined) throw new Error(`Minecraft ${v.id} has no custom disc support`);
-  return v.dataFormat;
-}
-
-interface Entry {
-  path: string;
-  bytes: Uint8Array;
-}
-
-function zip(wasm: Awaited<ReturnType<typeof loadMcPackWasm>>, entries: Entry[]): Blob {
-  const bytes = wasm.build_zip(
-    entries.map((e) => e.path),
-    entries.map((e) => e.bytes),
+export function discManifest(tracks: Track[]): DiscManifestEntry[] {
+  return tracks.map((t) =>
+    t.kind === 'vanilla'
+      ? { kind: 'vanilla', discId: t.discId, fileName: t.fileName }
+      : { kind: 'custom', namespace: t.namespace, id: t.id, displayName: t.displayName, fileName: t.fileName },
   );
-  return new Blob([bytes as BlobPart], { type: 'application/zip' });
 }
 
 const json = (v: unknown) => new TextEncoder().encode(JSON.stringify(v, null, 2));

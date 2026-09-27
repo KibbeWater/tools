@@ -1,15 +1,29 @@
 import type { CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
-import { PackEditor } from './components/PackEditor';
-import { useMcPackWasm } from './hooks/useMcPackWasm';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { faMusic } from '@fortawesome/free-solid-svg-icons/faMusic';
+import { faPaintbrush } from '@fortawesome/free-solid-svg-icons/faPaintbrush';
+import { faPalette } from '@fortawesome/free-solid-svg-icons/faPalette';
 import { FloatingNotes } from '@/components/FloatingNotes';
+import { useMcPackWasm } from '@/tools/minecraft-resource-pack/hooks/useMcPackWasm';
 import { accentVar, toolById } from '@/tools/registry';
+import { PackStudio, STUDIO_TABS, type StudioTab } from './components/PackStudio';
 
-const tool = toolById('minecraft-resource-pack')!;
+/** Each tab borrows the look of the tool card that links to it. */
+const TAB_LOOK: Record<StudioTab, { toolId: string; image: string; icons: (typeof faMusic)[] }> = {
+  discs: { toolId: 'minecraft-resource-pack', image: 'jukebox.png', icons: [faMusic] },
+  paintings: { toolId: 'minecraft-paintings', image: 'painting.png', icons: [faPaintbrush, faPalette] },
+};
 
-export default function McPackRoute() {
+export default function McPackStudioRoute() {
+  const { tab: param } = useParams();
+  const navigate = useNavigate();
   const wasm = useMcPackWasm();
+
+  const tab = STUDIO_TABS.find((t) => t.id === param)?.id;
+  if (!tab) return <Navigate to="/minecraft-pack/discs" replace />;
+
+  const look = TAB_LOOK[tab];
+  const tool = toolById(look.toolId)!;
 
   return (
     <div
@@ -21,33 +35,34 @@ export default function McPackRoute() {
           Tools
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-[var(--color-fg-muted)]">{tool.name}</span>
+        <span className="text-[var(--color-fg-muted)]">Minecraft Pack Studio</span>
       </nav>
 
       <header
-        className="relative mb-10 overflow-hidden rounded-[28px] border-2 border-[var(--color-ink)] bg-[var(--color-accent)] px-6 py-8 sm:px-10 sm:py-10 text-[var(--color-ink)] shadow-[6px_6px_0_var(--color-ink)]"
+        className="relative mb-10 overflow-hidden rounded-[28px] border-2 border-[var(--color-ink)] bg-[var(--color-accent)] px-6 py-8 sm:px-10 sm:py-10 text-[var(--color-ink)] shadow-[6px_6px_0_var(--color-ink)] transition-colors"
         style={{ viewTransitionName: `tool-card-${tool.id}` }}
       >
         <div className="relative max-w-[600px] sm:pr-6">
           <h1 className="font-display text-[36px] sm:text-[50px] font-semibold tracking-[-0.015em] leading-[1.02]">
-            {tool.name}
+            Minecraft Pack Studio
           </h1>
           <p className="mt-4 text-[16px] leading-relaxed text-[color-mix(in_oklch,var(--color-ink)_80%,transparent)]">
-            Put your own songs on Minecraft's music discs, or add brand-new ones. Drop in
-            audio, preview it, and download a pack you can install right away. Your work
-            saves in this browser, so you can come back and tweak it.
+            Build one resource pack piece by piece. Put your own songs on the music discs, hang your
+            own pictures as paintings, or add brand-new ones, then download a single pack with all of
+            it. Your work saves in this browser, so you can keep coming back to the same pack.
           </p>
           <WasmStatus state={wasm} />
         </div>
         <div className="hidden sm:block absolute right-6 lg:right-12 top-1/2 -translate-y-1/2 w-[160px] lg:w-[200px]">
           <FloatingNotes
+            key={tab}
             mode="always"
-            icons={[faMusic]}
+            icons={look.icons}
             size={20}
             className="left-[20%] right-[20%] top-[38%] h-0 text-[var(--color-ink)]"
           />
           <img
-            src={`${import.meta.env.BASE_URL}images/minecraft/jukebox.png`}
+            src={`${import.meta.env.BASE_URL}images/minecraft/${look.image}`}
             alt=""
             width={200}
             height={200}
@@ -56,10 +71,10 @@ export default function McPackRoute() {
         </div>
       </header>
 
-      <PackEditor />
+      <PackStudio tab={tab} onTab={(t) => navigate(`/minecraft-pack/${t}`, { replace: true })} />
 
       <p className="mt-12 text-[12.5px] text-[var(--color-fg-subtle)] max-w-[70ch]">
-        Disc and jukebox sprites are Minecraft textures, via the{' '}
+        Disc, jukebox and painting sprites are Minecraft textures, via the{' '}
         <a href="https://minecraft.wiki" target="_blank" rel="noreferrer" className="link">
           Minecraft Wiki
         </a>

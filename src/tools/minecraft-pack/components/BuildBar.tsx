@@ -7,30 +7,30 @@ import { faCircleCheck } from '@fortawesome/free-solid-svg-icons/faCircleCheck';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Kbd } from '@/components/ui/Kbd';
-import { downloadBlob, safeFileName } from '@/lib/minecraft';
-import type { Project } from '../lib/project';
-import { buildPack, type BuildProgress, type BuildResult } from '../lib/pack-builder';
+import { buildPack, downloadBlob, isEmptyPack, safeFileName, type BuildProgress, type BuildResult } from '../lib/build';
+import { plural, type Pack } from '../lib/pack';
 
 interface BuildBarProps {
-  project: Project;
-  disabled: boolean;
+  pack: Pack;
+  /** Why the pack can't build right now, if it can't. */
+  blocked: string | null;
 }
 
-export function BuildBar({ project, disabled }: BuildBarProps) {
+export function BuildBar({ pack, blocked }: BuildBarProps) {
   const [progress, setProgress] = useState<BuildProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<(BuildResult & { builtAt: number }) | null>(null);
+  const [result, setResult] = useState<(BuildResult & { builtAt: number; packId: string }) | null>(null);
   const busy = progress !== null;
-  const base = safeFileName(project.name, 'painting-pack');
+  const base = safeFileName(pack.name, 'resource-pack');
   const files = { rp: `${base}.zip`, dp: `${base} (datapack).zip` };
 
   const run = async () => {
-    if (busy || disabled) return;
+    if (busy || blocked) return;
     setError(null);
-    setProgress({ current: 0, total: project.art.length, message: 'Starting' });
+    setProgress({ current: 0, total: pack.tracks.length + pack.art.length, message: 'Starting' });
     try {
-      const r = await buildPack(project, setProgress);
-      setResult({ ...r, builtAt: Date.now() });
+      const r = await buildPack(pack, setProgress);
+      setResult({ ...r, builtAt: Date.now(), packId: pack.id });
       downloadBlob(r.resourcePack, files.rp);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -46,8 +46,9 @@ export function BuildBar({ project, disabled }: BuildBarProps) {
     void run();
   });
 
-  // A result is stale once the project changes after it was built.
-  const fresh = result && result.builtAt >= project.updatedAt ? result : null;
+  // A result is stale once the pack changes after it was built, or another pack is opened.
+  const fresh = result && result.packId === pack.id && result.builtAt >= pack.updatedAt ? result : null;
+  const custom = fresh ? [...fresh.discs.custom.map((s) => ({ id: s.songId, label: s.label, give: s.give })), ...fresh.paintings.custom.map((p) => ({ id: p.variantId, label: p.label, give: p.give }))] : [];
 
   return (
     <section className="space-y-4">
@@ -66,12 +67,12 @@ export function BuildBar({ project, disabled }: BuildBarProps) {
                 <div>
                   <p className="font-display text-[20px] font-semibold">Your pack is ready</p>
                   <p className="text-[13.5px]">
-                    {fresh.count} {fresh.count === 1 ? 'painting' : 'paintings'}. Put <strong>{files.rp}</strong> in your{' '}
+                    {summary(fresh)} Put <strong>{files.rp}</strong> in your{' '}
                     <code className="font-mono text-[12.5px]">resourcepacks</code> folder.
                     {fresh.datapack && (
                       <>
                         {' '}
-                        The new paintings also need <strong>{files.dp}</strong> in the world's{' '}
+                        The new {newThings(fresh)} also need <strong>{files.dp}</strong> in the world's{' '}
                         <code className="font-mono text-[12.5px]">datapacks</code> folder. Rejoin the world after adding it.
                       </>
                     )}
@@ -87,14 +88,14 @@ export function BuildBar({ project, disabled }: BuildBarProps) {
                     </Button>
                   )}
                 </div>
-                {fresh.customPaintings.length > 0 && (
+                {custom.length > 0 && (
                   <details className="text-[13px]">
-                    <summary className="cursor-pointer font-medium">Commands to get the new paintings</summary>
+                    <summary className="cursor-pointer font-medium">Commands to get the new {newThings(fresh)}</summary>
                     <ul className="mt-2 space-y-1">
-                      {fresh.customPaintings.map((p) => (
-                        <li key={p.variantId}>
-                          <span className="font-medium">{p.label}:</span>{' '}
-                          <code className="break-all font-mono text-[12px]">{p.give}</code>
+                      {custom.map((c) => (
+                        <li key={c.id}>
+                          <span className="font-medium">{c.label}:</span>{' '}
+                          <code className="break-all font-mono text-[12px]">{c.give}</code>
                         </li>
                       ))}
                     </ul>
@@ -117,7 +118,7 @@ export function BuildBar({ project, disabled }: BuildBarProps) {
               </span>
             ) : (
               <span className="text-[var(--color-fg-muted)]">
-                {project.art.length ? 'Everything runs in your browser.' : 'Add some images to build a pack.'}
+                {blocked ?? 'Builds every disc and painting into one pack. Unchanged discs are reused.'}
               </span>
             )}
           </p>
@@ -126,7 +127,7 @@ export function BuildBar({ project, disabled }: BuildBarProps) {
               size="lg"
               variant="accent"
               onClick={() => void run()}
-              disabled={disabled || busy}
+              disabled={!!blocked || busy}
               leading={<Icon icon={busy ? faSpinner : faDownload} size={13} spin={busy} />}
             >
               {busy ? 'Building' : 'Build pack'}
@@ -137,4 +138,30 @@ export function BuildBar({ project, disabled }: BuildBarProps) {
       </div>
     </section>
   );
+}
+
+/** Why a pack can't build, or `null` if it can. */
+export function blockedReason(pack: Pack, problems: string[]): string | null {
+  if (isEmptyPack(pack)) return 'Add some audio or images to build a pack.';
+  if (problems.length) return `Fix ${plural(problems.length, 'problem')} first: ${problems[0]}`;
+  return null;
+}
+
+function summary(r: BuildResult): string {
+  const parts: string[] = [];
+  const discs = r.discs.encoded + r.discs.reused;
+  if (discs) {
+    parts.push(
+      r.discs.reused === 0
+        ? `Converted ${plural(discs, 'disc')}`
+        : `Converted ${r.discs.encoded} ${r.discs.encoded === 1 ? 'disc' : 'discs'}, reused ${r.discs.reused} unchanged`,
+    );
+  }
+  if (r.paintings.count) parts.push(`painted ${plural(r.paintings.count, 'painting')}`);
+  const text = parts.join(', ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
+}
+
+function newThings(r: BuildResult): string {
+  return [r.discs.custom.length && 'discs', r.paintings.custom.length && 'paintings'].filter(Boolean).join(' and ');
 }

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons/faChevronDown';
 import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
 import { faFileZipper } from '@fortawesome/free-solid-svg-icons/faFileZipper';
+import { faFileCirclePlus } from '@fortawesome/free-solid-svg-icons/faFileCirclePlus';
 import { faTrashCan } from '@fortawesome/free-solid-svg-icons/faTrashCan';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -21,6 +22,8 @@ export interface PackProjectMenuApi<P extends SavedPack> {
   createProject: () => Promise<void>;
   openProject: (id: string) => Promise<void>;
   importPack: (file: File) => Promise<void>;
+  /** Add a pack zip's contents to the open pack. */
+  mergePack?: (file: File) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
 }
 
@@ -31,13 +34,14 @@ interface PackProjectMenuProps<P extends SavedPack> {
   onSwitched: () => void;
 }
 
-/** Switch between packs saved in this browser, start a new one, or reopen a pack zip. */
+/** Switch between packs saved in this browser, start a new one, reopen a pack zip, or add one to this pack. */
 export function PackProjectMenu<P extends SavedPack>({ api, describe, onSwitched }: PackProjectMenuProps<P>) {
   const [open, setOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const mergeRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const project = api.project!;
 
@@ -155,6 +159,25 @@ export function PackProjectMenu<P extends SavedPack>({ api, describe, onSwitched
             if (f) void run(() => api.importPack(f));
           }}
         />
+        {api.mergePack && (
+          <>
+            <Button leading={<Icon icon={faFileCirclePlus} size={12} />} disabled={busy} onClick={() => mergeRef.current?.click()}>
+              Add a zip to this pack
+            </Button>
+            <input
+              ref={mergeRef}
+              type="file"
+              accept=".zip,application/zip"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                const merge = api.mergePack;
+                if (f && merge) void run(() => merge(f));
+              }}
+            />
+          </>
+        )}
       </div>
       {error && <p className="text-[13.5px] text-[var(--color-danger)]">{error}</p>}
     </div>

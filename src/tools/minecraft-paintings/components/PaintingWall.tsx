@@ -6,7 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/cn';
 import { getPainting, paintingImage, PAINTINGS, sizeLabel, supportsCustomPaintings, type McVersion, type PaintingMeta } from '../lib/paintings';
 import { artProblem, artSize, IMAGE_ACCEPT, type Art, type CustomArt, type VanillaArt } from '../lib/project';
-import type { DropTarget } from '../hooks/usePaintingProject';
+import type { DropTarget } from '../hooks/usePaintings';
 import { ArtPreview } from './ArtPreview';
 
 interface PaintingWallProps {

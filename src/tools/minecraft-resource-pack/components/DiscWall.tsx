@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/cn';
 import { DISCS, discImage, supportsCustomDiscs, type McVersion } from '../lib/discs';
 import { trackProblem, type CustomTrack, type Track, type VanillaTrack } from '../lib/project';
-import type { DropTarget } from '../hooks/usePackProject';
+import type { DropTarget } from '../hooks/useDiscs';
 import { formatTime } from './TrackPanel';
 
 interface DiscWallProps {

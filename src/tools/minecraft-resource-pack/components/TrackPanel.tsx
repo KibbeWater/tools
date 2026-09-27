@@ -12,7 +12,7 @@ import { Slider } from '@/components/ui/Slider';
 import { Toggle } from '@/components/ui/Toggle';
 import { discImage, getDisc, giveCommand, type McVersion } from '../lib/discs';
 import { isValidId, sanitizeId, trackProblem, type AudioSettings, type Track } from '../lib/project';
-import { loadBlob } from '../lib/storage';
+import { loadBlob } from '@/tools/minecraft-pack/lib/storage';
 import { decodeForPreview, play, type Playback } from '../lib/preview';
 import { Waveform } from './Waveform';
 

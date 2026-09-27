@@ -1,7 +1,7 @@
 // Browser-side image handling: measuring dropped files and keeping a
 // downscaled bitmap of each source around for the live previews. The build
 // itself re-decodes the original in Rust, so previews can be approximate.
-import { loadBlob } from './storage';
+import { loadBlob } from '@/tools/minecraft-pack/lib/storage';
 
 /** Previews never need more than this many pixels on the long side. */
 const PREVIEW_MAX = 1600;
