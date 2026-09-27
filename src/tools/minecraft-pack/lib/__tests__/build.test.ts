@@ -171,6 +171,18 @@ describe('buildPack (protected, 1.21.11)', () => {
     expect(variant).toMatchObject({ width: 2, height: 2 });
   });
 
+  test('custom painting texture names stay the same across rebuilds', async () => {
+    const pack = await samplePack('1.21.11');
+    pack.protect = true;
+    const spritePaths = async () => {
+      const rp = unzip({ bytes: await blobBytes((await buildPack(pack)).resourcePack) });
+      return [...rp.keys()].filter((k) => k.startsWith('assets/test_pack/textures/painting/'));
+    };
+    const first = await spritePaths();
+    expect(first).toHaveLength(1);
+    expect(await spritePaths()).toEqual(first);
+  });
+
   test('a protected pack still reopens with its discs and paintings', async () => {
     const pack = await samplePack('1.21.11');
     pack.protect = true;

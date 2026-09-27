@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { getRelease, MC_RELEASES } from '@/lib/minecraft';
-import { createNamer, minifyJson, protectEntries, protectionsFor } from '../protection';
+import { createNamer, minifyJson, protectEntries, protectionsFor, stableName } from '../protection';
 import { makePngWithMetadata, pngChunks } from './testkit';
 
 const ids = (versionId: string) => protectionsFor(getRelease(versionId)).applied.map((p) => p.id);
@@ -38,6 +38,20 @@ describe('createNamer', () => {
     const a = next();
     const b = next();
     expect(a).not.toBe(b);
+  });
+});
+
+describe('stableName', () => {
+  test('is the same for the same seed and key, and looks like a random name', async () => {
+    const a = await stableName('pack-1', 'painting:ns:logo');
+    expect(a).toMatch(/^[a-z][a-z0-9]{11}$/);
+    expect(await stableName('pack-1', 'painting:ns:logo')).toBe(a);
+  });
+
+  test('changes with the seed or the key', async () => {
+    const a = await stableName('pack-1', 'painting:ns:logo');
+    expect(await stableName('pack-2', 'painting:ns:logo')).not.toBe(a);
+    expect(await stableName('pack-1', 'painting:ns:other')).not.toBe(a);
   });
 });
 

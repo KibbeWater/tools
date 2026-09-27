@@ -38,16 +38,21 @@ export function protectionsFor(version: McRelease): ProtectionPlan {
   return { applied, limits };
 }
 
+const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+/** A letter first, so names never look like numbers. */
+function nameFromBytes(bytes: Uint8Array): string {
+  let name = ALPHABET[bytes[0]! % 26]!;
+  for (let i = 1; i < bytes.length; i++) name += ALPHABET[bytes[i]! % ALPHABET.length];
+  return name;
+}
+
 /** Makes random resource names: lowercase letters and digits, unique per namer. */
 export function createNamer(random: (n: number) => Uint8Array = randomBytes): () => string {
   const used = new Set<string>();
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
   return () => {
     for (;;) {
-      // A letter first, so names never look like numbers.
-      const bytes = random(12);
-      let name = alphabet[bytes[0]! % 26]!;
-      for (let i = 1; i < bytes.length; i++) name += alphabet[bytes[i]! % alphabet.length];
+      const name = nameFromBytes(random(12));
       if (!used.has(name)) {
         used.add(name);
         return name;
@@ -57,6 +62,17 @@ export function createNamer(random: (n: number) => Uint8Array = randomBytes): ()
 }
 
 const randomBytes = (n: number) => crypto.getRandomValues(new Uint8Array(n));
+
+/**
+ * A name that looks like a `createNamer` one but is the same on every build:
+ * a hash of `seed` (kept out of the pack) and `key`. Rebuilding a pack then
+ * keeps its file names, so an updated resource pack still matches a datapack
+ * players already have.
+ */
+export async function stableName(seed: string, key: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${seed}\0${key}`));
+  return nameFromBytes(new Uint8Array(digest).subarray(0, 12));
+}
 
 /** Minify JSON and strip PNG metadata. Files that don't parse are left alone. */
 export function protectEntries(entries: PackEntry[]): PackEntry[] {

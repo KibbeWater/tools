@@ -3,6 +3,7 @@
 // resampled in Rust.
 import type { BuildProgress, PackEntry } from '@/tools/minecraft-pack/lib/build';
 import type { Pack } from '@/tools/minecraft-pack/lib/pack';
+import { stableName } from '@/tools/minecraft-pack/lib/protection';
 import { loadBlob } from '@/tools/minecraft-pack/lib/storage';
 import { loadPaintingsWasm } from '../hooks/usePaintingsWasm';
 import { getVersion, giveCommand, supportsTitleAndAuthor, type McVersion } from './paintings';
@@ -54,14 +55,15 @@ export function paintingProblems(pack: Pick<Pack, 'versionId' | 'art'>): string[
 
 /**
  * Render each painting and lay out its files. `step` numbers progress across
- * the whole build. With `randomName`, new paintings get random texture names;
- * vanilla ones can't, since the game looks those up by name.
+ * the whole build. With `nameSeed`, new paintings get random-looking texture
+ * names that stay the same from build to build; vanilla ones can't be renamed,
+ * since the game looks those up by name.
  */
 export async function buildPaintings(
   pack: Pack,
   onProgress: (p: BuildProgress) => void,
   step: { offset: number; total: number },
-  randomName: (() => string) | null = null,
+  nameSeed: string | null = null,
 ): Promise<PaintingFiles> {
   const version = getVersion(pack.versionId);
   const rp: PackEntry[] = [];
@@ -82,9 +84,9 @@ export async function buildPaintings(
     }
 
     // The sprite name is independent of the variant id, so it can be anything.
-    const sprite = randomName ? randomName() : a.id;
-    rp.push({ path: textureFile(a.namespace, sprite), bytes: png });
     const variantId = `${a.namespace}:${a.id}`;
+    const sprite = nameSeed ? await stableName(nameSeed, `painting:${variantId}`) : a.id;
+    rp.push({ path: textureFile(a.namespace, sprite), bytes: png });
     dp.push({
       path: `data/${a.namespace}/painting_variant/${a.id}.json`,
       bytes: json(variantJson(a, `${a.namespace}:${sprite}`, version)),

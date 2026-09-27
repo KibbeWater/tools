@@ -70,7 +70,7 @@ export async function buildPack(pack: Pack, onProgress: (p: BuildProgress) => vo
   const protect = !!pack.protect;
   const randomName = protect ? createNamer() : null;
   const discs = await buildDiscs(pack, onProgress, { offset: 0, total }, randomName);
-  const paintings = await buildPaintings(pack, onProgress, { offset: pack.tracks.length, total }, randomName);
+  const paintings = await buildPaintings(pack, onProgress, { offset: pack.tracks.length, total }, protect ? pack.id : null);
 
   onProgress({ current: total, total, message: 'Zipping' });
 
