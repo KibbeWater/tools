@@ -25,30 +25,43 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # The generated WASM only depends on the Rust sources, so when none of
+      # them changed we restore the previous output and skip the Rust build.
+      - name: Cache WASM output
+        id: wasm-cache
+        uses: actions/cache@v4
+        with:
+          path: src/tools/*/wasm
+          key: ${{ runner.os }}-wasm-${{ hashFiles('crates/**', 'Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml') }}
+
       - name: Install Rust toolchain
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
 
       - name: Cache cargo registry + target
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cache wasm-pack tool downloads
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+          path: ~/.cache/.wasm-pack
+          key: ${{ runner.os }}-wasm-pack-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-wasm-pack-
 
       - name: Install wasm-pack
-        run: |
-          if ! command -v wasm-pack >/dev/null 2>&1; then
-            cargo install wasm-pack --locked --version 0.14.0
-          fi
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.14.0
 
       - name: Build every Rust crate to WASM
+        if: steps.wasm-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           shopt -s nullglob
