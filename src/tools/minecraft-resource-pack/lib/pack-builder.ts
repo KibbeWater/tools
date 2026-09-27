@@ -6,13 +6,14 @@ import type { Pack } from '@/tools/minecraft-pack/lib/pack';
 import { loadBlob, loadEncoded, saveEncoded } from '@/tools/minecraft-pack/lib/storage';
 import { loadMcPackWasm } from '../hooks/useMcPackWasm';
 import { encodePlanarToOgg } from './audio-encoder';
-import { getVersion, giveCommand } from './discs';
-import { duplicateCustomIds, trackLabel, trackProblem, type Track } from './project';
+import type { VersionedCommand } from '@/lib/minecraft';
+import { getVersion, getVersionRange, giveCommands } from './discs';
+import { duplicateCustomIds, trackLabel, trackProblem, trackWarning, type Track } from './project';
 
 export interface CustomSong {
   label: string;
   songId: string;
-  give: string;
+  give: VersionedCommand[];
 }
 
 export interface DiscFiles {
@@ -53,6 +54,15 @@ export function discProblems(pack: Pick<Pack, 'versionId' | 'tracks'>): string[]
   });
 }
 
+/** What won't work on every version the pack targets, one line per disc. Doesn't stop the build. */
+export function discWarnings(pack: Pick<Pack, 'versionId' | 'minVersionId' | 'tracks'>): string[] {
+  const range = getVersionRange(pack);
+  return pack.tracks.flatMap((t) => {
+    const w = trackWarning(t, range);
+    return w ? [`${trackLabel(t)}: ${w}`] : [];
+  });
+}
+
 /**
  * Encode each disc and lay out its files. `step` numbers progress across the
  * whole build. With `randomName`, audio is stored under random names and
@@ -64,7 +74,7 @@ export async function buildDiscs(
   step: { offset: number; total: number },
   randomName: (() => string) | null = null,
 ): Promise<DiscFiles> {
-  const version = getVersion(pack.versionId);
+  const range = getVersionRange(pack);
   const rp: PackEntry[] = [];
   const dp: PackEntry[] = [];
   const sounds: Record<string, Record<string, unknown>> = {};
@@ -132,7 +142,7 @@ export async function buildDiscs(
         comparator_output: (customSongs.length % 15) + 1,
       }),
     });
-    customSongs.push({ label, songId, give: giveCommand(version, songId) });
+    customSongs.push({ label, songId, give: giveCommands(range, songId) });
   }
 
   for (const [ns, obj] of Object.entries(sounds)) {

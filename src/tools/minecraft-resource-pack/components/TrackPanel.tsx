@@ -3,36 +3,39 @@ import { faPlay } from '@fortawesome/free-solid-svg-icons/faPlay';
 import { faStop } from '@fortawesome/free-solid-svg-icons/faStop';
 import { faTrashCan } from '@fortawesome/free-solid-svg-icons/faTrashCan';
 import { faArrowUpFromBracket } from '@fortawesome/free-solid-svg-icons/faArrowUpFromBracket';
-import { faCopy } from '@fortawesome/free-solid-svg-icons/faCopy';
 import { faCompactDisc } from '@fortawesome/free-solid-svg-icons/faCompactDisc';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Field, Input } from '@/components/ui/Input';
 import { Slider } from '@/components/ui/Slider';
 import { Toggle } from '@/components/ui/Toggle';
-import { discImage, getDisc, giveCommand, type McVersion } from '../lib/discs';
-import { isValidId, sanitizeId, trackProblem, type AudioSettings, type Track } from '../lib/project';
+import { GiveCommands } from '@/components/GiveCommands';
+import { VersionWarning } from '@/components/VersionWarning';
+import type { VersionRange } from '@/lib/minecraft';
+import { discImage, getDisc, giveCommands, type McVersion } from '../lib/discs';
+import { isValidId, sanitizeId, trackProblem, trackWarning, type AudioSettings, type Track } from '../lib/project';
 import { loadBlob } from '@/tools/minecraft-pack/lib/storage';
 import { decodeForPreview, play, type Playback } from '../lib/preview';
 import { Waveform } from './Waveform';
 
 interface TrackPanelProps {
   track: Track;
-  version: McVersion;
+  range: VersionRange<McVersion>;
   duplicateId: boolean;
   onChange: (patch: Partial<Track>) => void;
   onReplaceFile: (file: File) => void;
   onRemove: () => void;
 }
 
-export function TrackPanel({ track, version, duplicateId, onChange, onReplaceFile, onRemove }: TrackPanelProps) {
+export function TrackPanel({ track, range, duplicateId, onChange, onReplaceFile, onRemove }: TrackPanelProps) {
   const s = track.settings;
   const set = (patch: Partial<AudioSettings>) => onChange({ settings: { ...s, ...patch } });
   const fileRef = useRef<HTMLInputElement>(null);
   const { buffer, failed } = usePreviewBuffer(track.audioId);
   const { playhead, playing, toggle, seek } = usePlayback(buffer, s);
   const disc = track.kind === 'vanilla' ? getDisc(track.discId) : undefined;
-  const problem = trackProblem(track, version);
+  const problem = trackProblem(track, range.to);
+  const warning = problem ? null : trackWarning(track, range);
   const clipLen = buffer ? (s.trimEnd > 0 ? Math.min(s.trimEnd, buffer.duration) : buffer.duration) - s.trimStart : null;
 
   return (
@@ -61,6 +64,7 @@ export function TrackPanel({ track, version, duplicateId, onChange, onReplaceFil
           {problem ?? 'Another disc already uses this namespace and id.'}
         </p>
       )}
+      {warning && <VersionWarning>{warning}.</VersionWarning>}
 
       <div className="space-y-2">
         <div className="flex items-center gap-3">
@@ -160,7 +164,7 @@ export function TrackPanel({ track, version, duplicateId, onChange, onReplaceFil
               />
             </div>
           </Field>
-          <GiveCommand command={giveCommand(version, `${track.namespace}:${track.id}`)} />
+          <GiveCommands commands={giveCommands(range, `${track.namespace}:${track.id}`)} />
         </div>
       )}
 
@@ -183,34 +187,6 @@ export function TrackPanel({ track, version, duplicateId, onChange, onReplaceFil
           }}
         />
       </div>
-    </div>
-  );
-}
-
-function GiveCommand({ command }: { command: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="space-y-1.5">
-      <div className="text-[13px] font-medium">Get it in game</div>
-      <div className="flex items-stretch gap-2">
-        <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-[12px] bg-[var(--color-surface)] px-3 py-2 font-mono text-[12px]">
-          {command}
-        </code>
-        <Button
-          size="sm"
-          className="self-center"
-          leading={<Icon icon={faCopy} size={11} />}
-          onClick={() => {
-            void navigator.clipboard?.writeText(command).then(() => {
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1500);
-            });
-          }}
-        >
-          {copied ? 'Copied' : 'Copy'}
-        </Button>
-      </div>
-      <p className="text-[12px] text-[var(--color-fg-subtle)]">Needs the datapack installed in the world.</p>
     </div>
   );
 }

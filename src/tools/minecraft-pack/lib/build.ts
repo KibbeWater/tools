@@ -1,12 +1,13 @@
 // Builds a pack into one resource pack zip, plus one datapack zip when any
 // feature registers something new (custom discs or paintings). Each feature
 // lays out its own files; this adds the shared ones and zips everything.
-import { getRelease, packMeta } from '@/lib/minecraft';
+import { dataRange, getRelease, MC_RELEASES, packMeta, packRange, rangeLabel, releaseOrder } from '@/lib/minecraft';
 import { loadMcPackWasm } from '@/tools/minecraft-resource-pack/hooks/useMcPackWasm';
 import {
   buildDiscs,
   discManifest,
   discProblems,
+  discWarnings,
   type CustomSong,
   type DiscManifestEntry,
 } from '@/tools/minecraft-resource-pack/lib/pack-builder';
@@ -14,6 +15,7 @@ import {
   buildPaintings,
   paintingManifest,
   paintingProblems,
+  paintingWarnings,
   type CustomPainting,
   type PaintingManifestEntry,
 } from '@/tools/minecraft-paintings/lib/pack-builder';
@@ -49,6 +51,7 @@ export interface PackManifest {
   version: 2;
   name: string;
   versionId: string;
+  minVersionId?: string;
   discs: DiscManifestEntry[];
   paintings: PaintingManifestEntry[];
 }
@@ -58,6 +61,24 @@ export function packProblems(pack: Pack): string[] {
   return [...discProblems(pack), ...paintingProblems(pack)];
 }
 
+/**
+ * What won't work on every version the pack targets, one line each. These
+ * don't stop the build; the pack still works where it can.
+ */
+export function packWarnings(pack: Pack): string[] {
+  const range = packRange(pack, getRelease);
+  const out: string[] = [];
+  // Before 1.20.2 the game compares `pack_format` alone, which can only name the oldest version.
+  const lastOld = Math.min(range.to.order, releaseOrder('1.20.2') - 1);
+  if (lastOld > range.from.order) {
+    const others = rangeLabel({ from: MC_RELEASES[range.from.order + 1]!, to: MC_RELEASES[lastOld]! });
+    out.push(
+      `Minecraft ${others} only checks a single pack format, so it will say this pack was made for an older version. It still works if you load it anyway`,
+    );
+  }
+  return [...out, ...discWarnings(pack), ...paintingWarnings(pack)];
+}
+
 export const isEmptyPack = (pack: Pick<Pack, 'tracks' | 'art'>) => pack.tracks.length + pack.art.length === 0;
 
 export async function buildPack(pack: Pack, onProgress: (p: BuildProgress) => void = () => {}): Promise<BuildResult> {
@@ -65,7 +86,7 @@ export async function buildPack(pack: Pack, onProgress: (p: BuildProgress) => vo
   if (problems.length) throw new Error(problems.join('; '));
   if (isEmptyPack(pack)) throw new Error('Add a disc or a painting first');
 
-  const version = getRelease(pack.versionId);
+  const range = packRange(pack, getRelease);
   const total = pack.tracks.length + pack.art.length;
   const protect = !!pack.protect;
   const randomName = protect ? createNamer() : null;
@@ -78,7 +99,7 @@ export async function buildPack(pack: Pack, onProgress: (p: BuildProgress) => vo
   const iconBytes = icon ? new Uint8Array(await icon.arrayBuffer()) : null;
 
   const rp: PackEntry[] = [...discs.rp, ...paintings.rp];
-  rp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(version.resourceFormat, pack.description) }) });
+  rp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(range, 'resource', pack.description) }) });
   if (!protect) rp.push({ path: MANIFEST_PATH, bytes: json(manifestFor(pack)) });
   if (iconBytes) rp.push({ path: 'pack.png', bytes: iconBytes });
 
@@ -86,9 +107,11 @@ export async function buildPack(pack: Pack, onProgress: (p: BuildProgress) => vo
   const dp: PackEntry[] = [...discs.dp, ...paintings.dp];
   let datapack: Blob | null = null;
   if (dp.length) {
-    // Custom discs and paintings are both blocked below 1.21, so this is always set here.
-    if (version.dataFormat === undefined) throw new Error(`Minecraft ${version.id} has no datapack registries`);
-    dp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(version.dataFormat, pack.description) }) });
+    // Custom discs and paintings are blocked unless the range reaches 1.21, so this is always set here.
+    // Versions before 1.21 in the range just don't get the datapack.
+    const data = dataRange(range);
+    if (!data) throw new Error(`Minecraft ${range.to.id} has no datapack registries`);
+    dp.push({ path: 'pack.mcmeta', bytes: json({ pack: packMeta(data, 'data', pack.description) }) });
     if (iconBytes) dp.push({ path: 'pack.png', bytes: iconBytes });
     datapack = zip(wasm, protect ? protectEntries(dp) : dp);
   }
@@ -106,6 +129,7 @@ function manifestFor(p: Pack): PackManifest {
     version: 2,
     name: p.name,
     versionId: p.versionId,
+    ...(p.minVersionId && p.minVersionId !== p.versionId ? { minVersionId: p.minVersionId } : {}),
     discs: discManifest(p.tracks),
     paintings: paintingManifest(p.art),
   };

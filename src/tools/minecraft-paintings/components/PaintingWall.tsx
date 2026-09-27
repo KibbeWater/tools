@@ -3,14 +3,17 @@ import { motion } from 'framer-motion';
 import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons/faTriangleExclamation';
 import { Icon } from '@/components/ui/Icon';
+import { WarningBadge } from '@/components/VersionWarning';
+import type { VersionRange } from '@/lib/minecraft';
 import { cn } from '@/lib/cn';
 import { getPainting, paintingImage, PAINTINGS, sizeLabel, supportsCustomPaintings, type McVersion, type PaintingMeta } from '../lib/paintings';
-import { artProblem, artSize, IMAGE_ACCEPT, type Art, type CustomArt, type VanillaArt } from '../lib/project';
+import { artProblem, artSize, artWarning, IMAGE_ACCEPT, type Art, type CustomArt, type VanillaArt } from '../lib/project';
 import type { DropTarget } from '../hooks/usePaintings';
 import { ArtPreview } from './ArtPreview';
 
 interface PaintingWallProps {
-  version: McVersion;
+  /** The versions the pack targets; the wall shows the newest one's paintings. */
+  range: VersionRange<McVersion>;
   art: Art[];
   selectedKey: string | null;
   duplicateIds: Set<string>;
@@ -23,11 +26,12 @@ interface PaintingWallProps {
  * Drop images anywhere on the wall to fill paintings automatically, or onto
  * one painting to set that one.
  */
-export function PaintingWall({ version, art, selectedKey, duplicateIds, onSelect, onFiles }: PaintingWallProps) {
+export function PaintingWall({ range, art, selectedKey, duplicateIds, onSelect, onFiles }: PaintingWallProps) {
   const [over, setOver] = useState(false);
   const depth = useRef(0);
   const vanilla = new Map(art.filter((a): a is VanillaArt => a.kind === 'vanilla').map((a) => [a.paintingId, a]));
   const custom = art.filter((a): a is CustomArt => a.kind === 'custom');
+  const version = range.to;
   // Replacements for paintings this version doesn't have stay visible so they can be fixed or removed.
   const orphans = [...vanilla.values()].filter((a) => !version.paintings.includes(a.paintingId));
   const canCustom = supportsCustomPaintings(version);
@@ -65,7 +69,7 @@ export function PaintingWall({ version, art, selectedKey, duplicateIds, onSelect
       art={a}
       fallback={<img src={paintingImage(m.id)} alt="" className={cn('pixelated h-full w-full', orphan && 'grayscale')} />}
       title={m.title}
-      version={version}
+      range={range}
       selected={!!a && a.key === selectedKey}
       onSelect={() => a && onSelect(a.key)}
       onFiles={(files) => onFiles(files, { kind: 'vanilla', paintingId: m.id })}
@@ -106,7 +110,7 @@ export function PaintingWall({ version, art, selectedKey, duplicateIds, onSelect
               blocks={artSize(a)}
               art={a}
               title={a.title || 'Untitled painting'}
-              version={version}
+              range={range}
               duplicate={duplicateIds.has(`${a.namespace}:${a.id}`)}
               selected={a.key === selectedKey}
               onSelect={() => onSelect(a.key)}
@@ -145,7 +149,7 @@ interface TileProps {
   /** Shown while the painting has no image of its own. */
   fallback?: ReactNode;
   title: string;
-  version: McVersion;
+  range: VersionRange<McVersion>;
   duplicate?: boolean;
   selected: boolean;
   transition: { delay: number };
@@ -160,10 +164,11 @@ const frameStyle = (w: number, h: number): CSSProperties => {
   return { width: `calc(var(--block) * ${w * k})`, height: `calc(var(--block) * ${h * k})` };
 };
 
-function Tile({ blocks, art, fallback, title, version, duplicate, selected, transition, onSelect, onFiles }: TileProps) {
+function Tile({ blocks, art, fallback, title, range, duplicate, selected, transition, onSelect, onFiles }: TileProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const problem = art ? (artProblem(art, version) ?? (duplicate ? 'Duplicate id' : null)) : null;
+  const problem = art ? (artProblem(art, range.to) ?? (duplicate ? 'Duplicate id' : null)) : null;
+  const warning = art && !problem ? artWarning(art, range) : null;
 
   return (
     <motion.li
@@ -223,6 +228,7 @@ function Tile({ blocks, art, fallback, title, version, duplicate, selected, tran
             <Icon icon={faTriangleExclamation} size={10} />
           </span>
         )}
+        {warning && <WarningBadge title={warning} />}
       </button>
       <input
         ref={inputRef}

@@ -2,7 +2,7 @@
 // using only changes Minecraft reads exactly like an ordinary pack. The zip
 // itself stays a standard zip. This deters casual copying; it can't stop
 // someone determined, since the game has to be able to read everything.
-import { supportsDataRegistries, type McRelease } from '@/lib/minecraft';
+import { dataRange, rangeLabel, type VersionRange } from '@/lib/minecraft';
 import type { PackEntry } from './build';
 import { stripPngMetadata } from './png';
 
@@ -20,8 +20,8 @@ export interface ProtectionPlan {
   limits: string[];
 }
 
-/** Which protections a pack for `version` gets. */
-export function protectionsFor(version: McRelease): ProtectionPlan {
+/** Which protections a pack for the versions in `range` gets. */
+export function protectionsFor(range: VersionRange): ProtectionPlan {
   const applied: Protection[] = [
     { id: 'manifest', label: 'Leaves out the file that lets this site reopen the pack with its original file names' },
     { id: 'json', label: 'Minifies every JSON file' },
@@ -30,10 +30,10 @@ export function protectionsFor(version: McRelease): ProtectionPlan {
     { id: 'vanilla-disc-names', label: 'Stores disc audio under random file names, linked up through sounds.json' },
   ];
   const limits = ['Replaced vanilla painting textures keep their names, since the game looks them up by name.'];
-  if (supportsDataRegistries(version)) {
+  if (dataRange(range)) {
     applied.push({ id: 'custom-names', label: 'Gives new discs and new paintings random asset names' });
   } else {
-    limits.push(`New discs and paintings need 1.21 or newer, so on ${version.id} there are none to rename.`);
+    limits.push(`New discs and paintings need 1.21 or newer, so on ${rangeLabel(range)} there are none to rename.`);
   }
   return { applied, limits };
 }

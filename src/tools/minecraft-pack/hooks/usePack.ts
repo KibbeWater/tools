@@ -102,7 +102,7 @@ export function usePack() {
   }, []);
 
   const updateMeta = useCallback(
-    (patch: Partial<Pick<Pack, 'name' | 'description' | 'versionId' | 'protect'>>) => mutate((p) => ({ ...p, ...patch })),
+    (patch: Partial<Pick<Pack, 'name' | 'description' | 'versionId' | 'minVersionId' | 'protect'>>) => mutate((p) => ({ ...p, ...patch })),
     [mutate],
   );
 

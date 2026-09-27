@@ -6,13 +6,14 @@ import type { Pack } from '@/tools/minecraft-pack/lib/pack';
 import { stableName } from '@/tools/minecraft-pack/lib/protection';
 import { loadBlob } from '@/tools/minecraft-pack/lib/storage';
 import { loadPaintingsWasm } from '../hooks/usePaintingsWasm';
-import { getVersion, giveCommand, supportsTitleAndAuthor, type McVersion } from './paintings';
-import { artLabel, artProblem, cropRect, duplicateCustomIds, outputSize, type Art } from './project';
+import type { VersionedCommand, VersionRange } from '@/lib/minecraft';
+import { getVersion, getVersionRange, giveCommands, supportsTitleAndAuthor, type McVersion } from './paintings';
+import { artLabel, artProblem, artWarning, cropRect, duplicateCustomIds, outputSize, type Art } from './project';
 
 export interface CustomPainting {
   label: string;
   variantId: string;
-  give: string;
+  give: VersionedCommand[];
 }
 
 export interface PaintingFiles {
@@ -53,6 +54,15 @@ export function paintingProblems(pack: Pick<Pack, 'versionId' | 'art'>): string[
   });
 }
 
+/** What won't fully work on every version the pack targets, one line per painting. Doesn't stop the build. */
+export function paintingWarnings(pack: Pick<Pack, 'versionId' | 'minVersionId' | 'art'>): string[] {
+  const range = getVersionRange(pack);
+  return pack.art.flatMap((a) => {
+    const w = artWarning(a, range);
+    return w ? [`${artLabel(a)}: ${w}`] : [];
+  });
+}
+
 /**
  * Render each painting and lay out its files. `step` numbers progress across
  * the whole build. With `nameSeed`, new paintings get random-looking texture
@@ -65,7 +75,7 @@ export async function buildPaintings(
   step: { offset: number; total: number },
   nameSeed: string | null = null,
 ): Promise<PaintingFiles> {
-  const version = getVersion(pack.versionId);
+  const range = getVersionRange(pack);
   const rp: PackEntry[] = [];
   const dp: PackEntry[] = [];
   const placeable: string[] = [];
@@ -89,10 +99,10 @@ export async function buildPaintings(
     rp.push({ path: textureFile(a.namespace, sprite), bytes: png });
     dp.push({
       path: `data/${a.namespace}/painting_variant/${a.id}.json`,
-      bytes: json(variantJson(a, `${a.namespace}:${sprite}`, version)),
+      bytes: json(variantJson(a, `${a.namespace}:${sprite}`, range)),
     });
     if (a.placeable) placeable.push(variantId);
-    customPaintings.push({ label, variantId, give: giveCommand(version, variantId) });
+    customPaintings.push({ label, variantId, give: giveCommands(range, variantId) });
   }
 
   if (placeable.length) {
@@ -128,13 +138,15 @@ async function render(wasm: Wasm, a: Art): Promise<Uint8Array> {
   }
 }
 
-function variantJson(a: Extract<Art, { kind: 'custom' }>, assetId: string, version: McVersion): Record<string, unknown> {
+function variantJson(a: Extract<Art, { kind: 'custom' }>, assetId: string, range: VersionRange<McVersion>): Record<string, unknown> {
   const out: Record<string, unknown> = {
     asset_id: assetId,
     width: a.width,
     height: a.height,
   };
-  if (supportsTitleAndAuthor(version)) {
+  // Written whenever any version in the range reads them. 1.21 – 1.21.1 skip
+  // fields they don't know, so the same file still loads there.
+  if (supportsTitleAndAuthor(range.to)) {
     // Vanilla colours these itself in its own definitions; match that.
     if (a.title.trim()) out.title = { text: a.title.trim(), color: 'yellow' };
     if (a.author.trim()) out.author = { text: a.author.trim(), color: 'gray' };

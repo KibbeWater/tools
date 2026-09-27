@@ -3,13 +3,14 @@ import { getRelease, MC_RELEASES } from '@/lib/minecraft';
 import { createNamer, minifyJson, protectEntries, protectionsFor, stableName } from '../protection';
 import { makePngWithMetadata, pngChunks } from './testkit';
 
-const ids = (versionId: string) => protectionsFor(getRelease(versionId)).applied.map((p) => p.id);
+const one = (id: string) => ({ from: getRelease(id), to: getRelease(id) });
+const ids = (versionId: string) => protectionsFor(one(versionId)).applied.map((p) => p.id);
 
 describe('protectionsFor', () => {
   test('before 1.21 there is nothing custom to rename', () => {
     for (const v of ['1.16 – 1.16.1', '1.18.x', '1.20.5 – 1.20.6']) {
       expect(ids(v)).toEqual(['manifest', 'json', 'png', 'vanilla-disc-names']);
-      expect(protectionsFor(getRelease(v)).limits.join(' ')).toContain('1.21');
+      expect(protectionsFor(one(v)).limits.join(' ')).toContain('1.21');
     }
   });
 

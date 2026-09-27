@@ -10,7 +10,7 @@ import { Kbd } from '@/components/ui/Kbd';
 import { StepHeading } from '@/components/StepHeading';
 import type { PackHandle } from '@/tools/minecraft-pack/hooks/usePack';
 import type { Pack } from '@/tools/minecraft-pack/lib/pack';
-import { getVersion, supportsCustomDiscs } from '../lib/discs';
+import { getVersionRange, supportsCustomDiscs } from '../lib/discs';
 import { duplicateCustomIds } from '../lib/project';
 import { useDiscs, type DropResult, type DropTarget } from '../hooks/useDiscs';
 import { DiscWall } from './DiscWall';
@@ -33,7 +33,8 @@ export function DiscEditor({ pack: project, handle }: DiscEditorProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const bulkRef = useRef<HTMLInputElement>(null);
 
-  const version = getVersion(project.versionId);
+  const range = getVersionRange(project);
+  const version = range.to;
   const dupes = useMemo(() => duplicateCustomIds(project.tracks), [project.tracks]);
   const selected = project.tracks.find((t) => t.key === selectedKey) ?? null;
 
@@ -92,7 +93,7 @@ export function DiscEditor({ pack: project, handle }: DiscEditorProps) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="space-y-3">
           <DiscWall
-            version={version}
+            range={range}
             tracks={project.tracks}
             selectedKey={selectedKey}
             duplicateIds={dupes}
@@ -127,7 +128,7 @@ export function DiscEditor({ pack: project, handle }: DiscEditorProps) {
               {selected ? (
                 <TrackPanel
                   track={selected}
-                  version={version}
+                  range={range}
                   duplicateId={selected.kind === 'custom' && dupes.has(`${selected.namespace}:${selected.id}`)}
                   onChange={(patch) => api.updateTrack(selected.key, patch)}
                   onReplaceFile={(f) =>

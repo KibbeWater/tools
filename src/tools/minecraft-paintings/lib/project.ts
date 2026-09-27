@@ -1,11 +1,13 @@
 // Paintings in a pack: everything needed to rebuild them, minus the image
 // bytes themselves (those live in IndexedDB, keyed by `imageId`).
+import type { VersionRange } from '@/lib/minecraft';
 import type { Pack } from '@/tools/minecraft-pack/lib/pack';
 import {
   getPainting,
   getVersion,
   MAX_CUSTOM_BLOCKS,
   supportsCustomPaintings,
+  supportsTitleAndAuthor,
   type McVersion,
 } from './paintings';
 
@@ -76,7 +78,7 @@ export interface CustomArt extends ArtBase {
 export type Art = VanillaArt | CustomArt;
 
 /** The parts of a pack the painting helpers read. */
-export type Project = Pick<Pack, 'name' | 'versionId' | 'art'>;
+export type Project = Pick<Pack, 'name' | 'versionId' | 'minVersionId' | 'art'>;
 
 export { uid } from '@/tools/minecraft-pack/lib/pack';
 
@@ -142,6 +144,26 @@ export function artProblem(a: Art, version: McVersion): string | null {
   if (!isValidId(a.namespace)) return 'Namespace can only use a–z, 0–9 and _';
   if (!isValidId(a.id)) return 'Id can only use a–z, 0–9 and _';
   if (!isBlockCount(a.width) || !isBlockCount(a.height)) return `Size must be 1 to ${MAX_CUSTOM_BLOCKS} blocks each way`;
+  return null;
+}
+
+/**
+ * Why this painting won't fully work on every version the pack targets, or
+ * `null` if it will. Unlike a problem this doesn't stop the build: the pack
+ * still works on the rest of the range.
+ */
+export function artWarning(a: Art, range: VersionRange<McVersion>): string | null {
+  if (artProblem(a, range.to)) return null;
+  if (a.kind === 'vanilla') {
+    if (range.from.paintings.includes(a.paintingId)) return null;
+    return `This painting was added in Minecraft ${getPainting(a.paintingId)?.since ?? range.to.id}, so older versions in the range don't have it`;
+  }
+  if (!supportsCustomPaintings(range.from)) {
+    return "New paintings need Minecraft 1.21 or newer, so versions before that in the range won't have it";
+  }
+  if ((a.title.trim() || a.author.trim()) && supportsTitleAndAuthor(range.to) && !supportsTitleAndAuthor(range.from)) {
+    return 'The title and artist only show in game from Minecraft 1.21.2; older versions in the range show the painting without them';
+  }
   return null;
 }
 

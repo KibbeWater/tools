@@ -94,8 +94,13 @@ export function BuildBar({ pack, blocked }: BuildBarProps) {
                     <ul className="mt-2 space-y-1">
                       {custom.map((c) => (
                         <li key={c.id}>
-                          <span className="font-medium">{c.label}:</span>{' '}
-                          <code className="break-all font-mono text-[12px]">{c.give}</code>
+                          <span className="font-medium">{c.label}:</span>
+                          {c.give.map((g) => (
+                            <div key={g.command}>
+                              {g.versions && <span className="text-[var(--color-fg-muted)]">{g.versions}: </span>}
+                              <code className="break-all font-mono text-[12px]">{g.command}</code>
+                            </div>
+                          ))}
                         </li>
                       ))}
                     </ul>

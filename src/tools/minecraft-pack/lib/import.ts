@@ -1,7 +1,7 @@
 // Turn a resource pack zip back into an editable pack. Every feature pulls its
 // own files out of the same zip, so a pack with discs and paintings comes back
 // whole. Also reads the per-tool manifests older versions of the site wrote.
-import { releaseForPackMeta } from '@/lib/minecraft';
+import { rangeForPackMeta } from '@/lib/minecraft';
 import { loadMcPackWasm } from '@/tools/minecraft-resource-pack/hooks/useMcPackWasm';
 import type { DiscManifestEntry } from '@/tools/minecraft-resource-pack/lib/pack-builder';
 import { extractDiscs } from '@/tools/minecraft-resource-pack/lib/pack-import';
@@ -37,7 +37,14 @@ export async function importPack(zipFile: File): Promise<Pack> {
 
   const pack = newPack(manifest?.name ?? zipFile.name.replace(/\.[^.]+$/, ''));
   pack.description = typeof mcmeta.description === 'string' ? mcmeta.description : pack.description;
-  pack.versionId = manifest?.versionId ?? releaseForPackMeta(mcmeta).id;
+  if (manifest?.versionId) {
+    pack.versionId = manifest.versionId;
+    pack.minVersionId = manifest.minVersionId ?? manifest.versionId;
+  } else {
+    const range = rangeForPackMeta(mcmeta);
+    pack.versionId = range.to.id;
+    pack.minVersionId = range.from.id;
+  }
   pack.tracks = await extractDiscs(files, manifest?.discs);
   pack.art = await extractPaintings(files, manifest?.paintings);
 
@@ -56,6 +63,7 @@ export async function importPack(zipFile: File): Promise<Pack> {
 interface Manifest {
   name?: string;
   versionId?: string;
+  minVersionId?: string;
   discs?: DiscManifestEntry[];
   paintings?: PaintingManifestEntry[];
 }
@@ -63,7 +71,7 @@ interface Manifest {
 /** Our manifest in any of its versions, normalised. */
 function readManifest(raw: any): Manifest | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
-  const base = { name: raw.name, versionId: raw.versionId };
+  const base = { name: raw.name, versionId: raw.versionId, minVersionId: raw.minVersionId };
   if (raw.version === 2) return { ...base, discs: raw.discs, paintings: raw.paintings };
   // Version 1 came from the separate tools; only the painting one said which it was.
   if (raw.version === 1 && raw.tool === 'minecraft-paintings') return { ...base, paintings: raw.art };

@@ -10,7 +10,7 @@ import { Kbd } from '@/components/ui/Kbd';
 import { StepHeading } from '@/components/StepHeading';
 import type { PackHandle } from '@/tools/minecraft-pack/hooks/usePack';
 import type { Pack } from '@/tools/minecraft-pack/lib/pack';
-import { getVersion, supportsCustomPaintings } from '../lib/paintings';
+import { getVersionRange, supportsCustomPaintings } from '../lib/paintings';
 import { duplicateCustomIds, IMAGE_ACCEPT } from '../lib/project';
 import { usePaintings, type DropResult, type DropTarget } from '../hooks/usePaintings';
 import { PaintingWall } from './PaintingWall';
@@ -33,7 +33,8 @@ export function PaintingEditor({ pack: project, handle }: PaintingEditorProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const bulkRef = useRef<HTMLInputElement>(null);
 
-  const version = getVersion(project.versionId);
+  const range = getVersionRange(project);
+  const version = range.to;
   const dupes = useMemo(() => duplicateCustomIds(project.art), [project.art]);
   const selected = project.art.find((a) => a.key === selectedKey) ?? null;
 
@@ -92,7 +93,7 @@ export function PaintingEditor({ pack: project, handle }: PaintingEditorProps) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="space-y-3">
           <PaintingWall
-            version={version}
+            range={range}
             art={project.art}
             selectedKey={selectedKey}
             duplicateIds={dupes}
@@ -127,7 +128,7 @@ export function PaintingEditor({ pack: project, handle }: PaintingEditorProps) {
               {selected ? (
                 <ArtPanel
                   art={selected}
-                  version={version}
+                  range={range}
                   duplicateId={selected.kind === 'custom' && dupes.has(`${selected.namespace}:${selected.id}`)}
                   onChange={(patch) => api.updateArt(selected.key, patch)}
                   onReplaceFile={(f) =>

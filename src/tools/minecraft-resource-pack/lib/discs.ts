@@ -1,16 +1,19 @@
 // Canonical Minecraft music disc registry.
 // Values verified against https://minecraft.wiki/w/Music_Disc (September 2026).
 import {
+  commandsAcross,
+  dataRange,
   FIRST_RELEASE,
   MC_RELEASES,
-  packMeta,
+  packRange,
   releaseOrder,
   releaseOptions,
   supportsDataRegistries,
   type McRelease,
+  type VersionedCommand,
+  type VersionRange,
 } from '@/lib/minecraft';
 
-export { packMeta };
 export type { PackFormat } from '@/lib/minecraft';
 
 export interface McVersion extends McRelease {
@@ -71,6 +74,10 @@ export const versionOptions = releaseOptions;
 export const getVersion = (id: string): McVersion =>
   MC_VERSIONS.find((v) => v.id === id) ?? LATEST_VERSION;
 
+/** The versions a pack targets, with each one's discs. */
+export const getVersionRange = (p: { versionId: string; minVersionId?: string }): VersionRange<McVersion> =>
+  packRange(p, getVersion);
+
 export const getDisc = (id: string): DiscMeta | undefined => DISCS.find((d) => d.id === id);
 
 /** Custom discs need the `jukebox_song` registry, added in 1.21. */
@@ -88,6 +95,17 @@ export function giveCommand(v: McVersion, songId: string): string {
     ? `minecraft:jukebox_playable="${songId}"`
     : `minecraft:jukebox_playable={song:"${songId}"}`;
   return `/give @s minecraft:music_disc_13[${component}]`;
+}
+
+/**
+ * `/give` commands for a custom disc across the part of `range` that can load
+ * it (1.21+): one command, or one each side of 1.21.5 if the range spans it.
+ */
+export function giveCommands(range: VersionRange<McVersion>, songId: string): VersionedCommand[] {
+  const data = dataRange(range) as VersionRange<McVersion> | null;
+  if (!data) return [];
+  const from = getVersion(data.from.id);
+  return commandsAcross({ from, to: range.to }, '1.21.5', MC_VERSIONS, (v) => giveCommand(v, songId));
 }
 
 /** Item sprite for a vanilla disc (Java Edition texture, via minecraft.wiki). */

@@ -11,7 +11,7 @@ import { memoryStorage, makePng, makePngWithMetadata, makeWav, decodeRgba, pngCh
 const store = memoryStorage();
 vi.mock('@/tools/minecraft-pack/lib/storage', () => store.module);
 
-const { buildPack } = await import('../build');
+const { buildPack, packWarnings } = await import('../build');
 const { importPack } = await import('../import');
 const { newPack } = await import('../pack');
 const { loadMcPackWasm } = await import('@/tools/minecraft-resource-pack/hooks/useMcPackWasm');
@@ -36,9 +36,10 @@ let ids = 0;
 const nextId = () => `id${ids++}`;
 
 /** A pack with one vanilla disc, one custom disc, one vanilla painting, one custom painting. */
-async function samplePack(versionId: string): Promise<PackT> {
+async function samplePack(versionId: string, minVersionId = versionId): Promise<PackT> {
   const pack = newPack('Test Pack') as PackT;
   pack.versionId = versionId;
+  pack.minVersionId = minVersionId;
   pack.description = 'A  test   pack\n';
 
   const iconId = nextId();
@@ -227,6 +228,56 @@ describe('version handling', () => {
     expect(result.datapack).toBeNull();
     const rp = unzip({ bytes: await blobBytes(result.resourcePack) });
     expect(readJson(rp, 'pack.mcmeta').pack).toEqual({ description: pack.description, pack_format: 15 });
+  });
+
+  test('a version range covers every version in both pack.mcmeta files and reopens as the same range', async () => {
+    const pack = await samplePack('1.21.11', '1.20 – 1.20.1');
+    const result = await buildPack(pack);
+    const rp = unzip({ bytes: await blobBytes(result.resourcePack) });
+    expect(readJson(rp, 'pack.mcmeta').pack).toEqual({
+      description: pack.description,
+      pack_format: 15,
+      supported_formats: [15, 75],
+      min_format: 15,
+      max_format: [75, 0],
+    });
+    // The datapack only covers the part of the range that has registries.
+    const dp = unzip({ bytes: await blobBytes(result.datapack!) });
+    expect(readJson(dp, 'pack.mcmeta').pack).toEqual({
+      description: pack.description,
+      pack_format: 48,
+      supported_formats: [48, 94],
+      min_format: 48,
+      max_format: [94, 1],
+    });
+    // The range spans 1.21.5, where both /give syntaxes changed.
+    expect(result.discs.custom[0]!.give.map((g) => g.versions)).toEqual(['1.21.5 – 1.21.11', '1.21 – 1.21.4']);
+    expect(result.paintings.custom[0]!.give[1]!.command).toContain('entity_data');
+
+    const reopened = await importPack(new File([result.resourcePack], 'x.zip'));
+    expect([reopened.minVersionId, reopened.versionId]).toEqual(['1.20 – 1.20.1', '1.21.11']);
+  });
+
+  test('warns about what only works on part of the range, without blocking the build', async () => {
+    expect(packWarnings(await samplePack('1.21.11'))).toEqual([]);
+
+    const pack = await samplePack('1.21.11', '1.20 – 1.20.1');
+    pack.tracks[0] = { ...pack.tracks[0]!, discId: 'lava_chicken' } as PackT['tracks'][number];
+    const warnings = packWarnings(pack);
+    // 1.20 – 1.20.1 is the only pre-1.20.2 version here, so pack_format covers it: no format warning.
+    expect(warnings).toHaveLength(3);
+    expect(warnings[0]).toMatch(/^Lava Chicken: .*added in Minecraft 1\.21\.7/);
+    expect(warnings[1]).toMatch(/^My Song: New discs need Minecraft 1\.21/);
+    expect(warnings[2]).toMatch(/^Our Logo: New paintings need Minecraft 1\.21/);
+
+    const oldFormats = packWarnings(await samplePack('1.20.2', '1.19 – 1.19.2'));
+    expect(oldFormats.some((w) => w.includes('1.19.3 – 1.20.1') && w.includes('single pack format'))).toBe(true);
+    await expect(buildPack(pack)).resolves.toBeTruthy();
+  });
+
+  test('title and artist are flagged when the range starts before 1.21.2', async () => {
+    const warnings = packWarnings(await samplePack('1.21.4', '1.21 – 1.21.1'));
+    expect(warnings).toEqual([expect.stringMatching(/^Our Logo: The title and artist only show in game from Minecraft 1\.21\.2/)]);
   });
 
   test('the encode cache is reused on a second build and refreshed when settings change', async () => {

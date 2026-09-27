@@ -7,11 +7,12 @@ import { Toggle } from '@/components/ui/Toggle';
 import { PackProjectMenu } from '@/components/PackProjectMenu';
 import { StepHeading } from '@/components/StepHeading';
 import { cn } from '@/lib/cn';
-import { getRelease, releaseOptions } from '@/lib/minecraft';
+import { VersionWarning } from '@/components/VersionWarning';
+import { getRelease, packRange, rangeLabel, releaseOptions } from '@/lib/minecraft';
 import { DiscEditor } from '@/tools/minecraft-resource-pack/components/DiscEditor';
 import { PaintingEditor } from '@/tools/minecraft-paintings/components/PaintingEditor';
 import { usePack } from '../hooks/usePack';
-import { packProblems } from '../lib/build';
+import { packProblems, packWarnings } from '../lib/build';
 import { describePack, type Pack } from '../lib/pack';
 import { protectionsFor } from '../lib/protection';
 import { BuildBar, blockedReason } from './BuildBar';
@@ -33,6 +34,7 @@ export function PackStudio({ tab, onTab }: PackStudioProps) {
   const api = usePack();
   const { project: pack } = api;
   const problems = useMemo(() => (pack ? packProblems(pack) : []), [pack]);
+  const warnings = useMemo(() => (pack ? packWarnings(pack) : []), [pack]);
 
   if (!pack) {
     return <div className="py-24 text-center text-[14px] text-[var(--color-fg-subtle)]">Opening your pack…</div>;
@@ -49,15 +51,7 @@ export function PackStudio({ tab, onTab }: PackStudioProps) {
       <div className="space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <PackProjectMenu api={api} describe={describePack} onSwitched={() => {}} />
-          <label className="flex h-10 items-center gap-2 text-[13px] text-[var(--color-fg-muted)]">
-            Minecraft
-            <Select
-              value={pack.versionId}
-              onChange={(e) => api.updateMeta({ versionId: e.target.value })}
-              options={releaseOptions}
-              className="w-[170px]"
-            />
-          </label>
+          <VersionRangePicker pack={pack} onChange={api.updateMeta} />
         </div>
 
         <div role="tablist" aria-label="What to edit" className="flex flex-wrap gap-2">
@@ -125,20 +119,80 @@ export function PackStudio({ tab, onTab }: PackStudioProps) {
             <Textarea value={pack.description} onChange={(e) => api.updateMeta({ description: e.target.value })} rows={2} />
           </Field>
           <p className="self-end text-[13px] text-[var(--color-fg-muted)]">
-            Minecraft {pack.versionId}: {describePack(pack).toLowerCase()}. Saved in this browser as you go.
+            Minecraft {rangeLabel(packRange(pack, getRelease))}: {describePack(pack).toLowerCase()}. Saved in this browser as you go.
           </p>
           <ProtectionSettings pack={pack} onChange={(protect) => api.updateMeta({ protect })} />
         </Card>
       </section>
+
+      {warnings.length > 0 && (
+        <VersionWarning>
+          <p className="font-medium">
+            {warnings.length === 1 ? 'One thing' : `${warnings.length} things`} won't work on every version from{' '}
+            {rangeLabel(packRange(pack, getRelease))}. The pack still builds.
+          </p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">
+            {warnings.map((w) => (
+              <li key={w}>{w}.</li>
+            ))}
+          </ul>
+        </VersionWarning>
+      )}
 
       <BuildBar pack={pack} blocked={blockedReason(pack, problems)} />
     </div>
   );
 }
 
+/**
+ * Oldest and newest Minecraft version the pack targets. Picking one past the
+ * other drags the other along, so the range never turns inside out.
+ */
+function VersionRangePicker({
+  pack,
+  onChange,
+}: {
+  pack: Pack;
+  onChange: (patch: Pick<Pack, 'versionId' | 'minVersionId'>) => void;
+}) {
+  const { from, to } = packRange(pack, getRelease);
+  const set = (fromId: string, toId: string, moved: 'from' | 'to') => {
+    const a = getRelease(fromId);
+    const b = getRelease(toId);
+    if (a.order <= b.order) onChange({ minVersionId: a.id, versionId: b.id });
+    else if (moved === 'from') onChange({ minVersionId: a.id, versionId: a.id });
+    else onChange({ minVersionId: b.id, versionId: b.id });
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[13px] text-[var(--color-fg-muted)]">
+      <label className="flex h-10 items-center gap-2">
+        Minecraft
+        <Select
+          aria-label="Oldest Minecraft version"
+          value={from.id}
+          onChange={(e) => set(e.target.value, to.id, 'from')}
+          options={releaseOptions}
+          className="w-[170px]"
+        />
+      </label>
+      <label className="flex h-10 items-center gap-2">
+        to
+        <Select
+          aria-label="Newest Minecraft version"
+          value={to.id}
+          onChange={(e) => set(from.id, e.target.value, 'to')}
+          options={releaseOptions}
+          className="w-[170px]"
+        />
+      </label>
+    </div>
+  );
+}
+
 function ProtectionSettings({ pack, onChange }: { pack: Pack; onChange: (protect: boolean) => void }) {
   const on = !!pack.protect;
-  const plan = protectionsFor(getRelease(pack.versionId));
+  const range = packRange(pack, getRelease);
+  const plan = protectionsFor(range);
   return (
     <div className="md:col-span-2 space-y-3 border-t-2 border-dashed border-[var(--color-border-hi)] pt-5">
       <div className="flex items-start justify-between gap-4">
@@ -156,7 +210,7 @@ function ProtectionSettings({ pack, onChange }: { pack: Pack; onChange: (protect
       {on && (
         <div className="grid gap-3 text-[13px] md:grid-cols-2">
           <div>
-            <p className="font-medium">For Minecraft {pack.versionId}, this:</p>
+            <p className="font-medium">For Minecraft {rangeLabel(range)}, this:</p>
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[var(--color-fg-muted)]">
               {plan.applied.map((p) => (
                 <li key={p.id}>{p.label}.</li>

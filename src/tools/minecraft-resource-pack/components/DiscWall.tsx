@@ -4,14 +4,17 @@ import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
 import { faCompactDisc } from '@fortawesome/free-solid-svg-icons/faCompactDisc';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons/faTriangleExclamation';
 import { Icon } from '@/components/ui/Icon';
+import { WarningBadge } from '@/components/VersionWarning';
+import type { VersionRange } from '@/lib/minecraft';
 import { cn } from '@/lib/cn';
 import { DISCS, discImage, supportsCustomDiscs, type McVersion } from '../lib/discs';
-import { trackProblem, type CustomTrack, type Track, type VanillaTrack } from '../lib/project';
+import { trackProblem, trackWarning, type CustomTrack, type Track, type VanillaTrack } from '../lib/project';
 import type { DropTarget } from '../hooks/useDiscs';
 import { formatTime } from './TrackPanel';
 
 interface DiscWallProps {
-  version: McVersion;
+  /** The versions the pack targets; the wall shows the newest one's discs. */
+  range: VersionRange<McVersion>;
   tracks: Track[];
   selectedKey: string | null;
   duplicateIds: Set<string>;
@@ -25,13 +28,14 @@ const ACCEPT = 'audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac';
  * Every disc in the selected version as a tile. Drop files anywhere on the
  * wall to fill discs automatically, or onto one tile to set that disc.
  */
-export function DiscWall({ version, tracks, selectedKey, duplicateIds, onSelect, onFiles }: DiscWallProps) {
+export function DiscWall({ range, tracks, selectedKey, duplicateIds, onSelect, onFiles }: DiscWallProps) {
   const [over, setOver] = useState(false);
   const depth = useRef(0);
   const vanilla = new Map(
     tracks.filter((t): t is VanillaTrack => t.kind === 'vanilla').map((t) => [t.discId, t]),
   );
   const custom = tracks.filter((t): t is CustomTrack => t.kind === 'custom');
+  const version = range.to;
   // Replacements for discs this version doesn't have stay visible so they can be fixed or removed.
   const orphans = [...vanilla.values()].filter((t) => !version.discs.includes(t.discId));
   const canCustom = supportsCustomDiscs(version);
@@ -81,7 +85,7 @@ export function DiscWall({ version, tracks, selectedKey, duplicateIds, onSelect,
               image={<img src={discImage(id)} alt="" width={64} height={64} className="pixelated w-16 h-16" />}
               title={disc.label}
               track={t}
-              version={version}
+              range={range}
               selected={!!t && t.key === selectedKey}
               onSelect={() => t && onSelect(t.key)}
               onFiles={(files) => onFiles(files, { kind: 'vanilla', discId: id })}
@@ -95,7 +99,7 @@ export function DiscWall({ version, tracks, selectedKey, duplicateIds, onSelect,
             image={<img src={discImage(t.discId)} alt="" width={64} height={64} className="pixelated w-16 h-16 grayscale" />}
             title={DISCS.find((d) => d.id === t.discId)?.label ?? t.discId}
             track={t}
-            version={version}
+            range={range}
             selected={t.key === selectedKey}
             onSelect={() => onSelect(t.key)}
             onFiles={(files) => onFiles(files, { kind: 'vanilla', discId: t.discId })}
@@ -108,7 +112,7 @@ export function DiscWall({ version, tracks, selectedKey, duplicateIds, onSelect,
             image={<CustomDiscArt />}
             title={t.displayName || 'Untitled disc'}
             track={t}
-            version={version}
+            range={range}
             duplicate={duplicateIds.has(`${t.namespace}:${t.id}`)}
             selected={t.key === selectedKey}
             onSelect={() => onSelect(t.key)}
@@ -143,7 +147,7 @@ interface TileProps {
   image: ReactNode;
   title: string;
   track?: Track;
-  version: McVersion;
+  range: VersionRange<McVersion>;
   duplicate?: boolean;
   selected: boolean;
   transition: { delay: number };
@@ -151,10 +155,11 @@ interface TileProps {
   onFiles: (files: File[]) => void;
 }
 
-function Tile({ image, title, track, version, duplicate, selected, transition, onSelect, onFiles }: TileProps) {
+function Tile({ image, title, track, range, duplicate, selected, transition, onSelect, onFiles }: TileProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const problem = track ? trackProblem(track, version) ?? (duplicate ? 'Duplicate id' : null) : null;
+  const problem = track ? trackProblem(track, range.to) ?? (duplicate ? 'Duplicate id' : null) : null;
+  const warning = track && !problem ? trackWarning(track, range) : null;
 
   return (
     <motion.li
@@ -205,6 +210,7 @@ function Tile({ image, title, track, version, duplicate, selected, transition, o
             <Icon icon={faTriangleExclamation} size={10} />
           </span>
         )}
+        {warning && <WarningBadge title={warning} />}
       </button>
       <input
         ref={inputRef}

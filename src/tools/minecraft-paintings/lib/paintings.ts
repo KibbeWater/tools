@@ -1,7 +1,19 @@
 // Canonical Minecraft painting registry.
 // Values verified against https://minecraft.wiki/w/Painting and
 // https://minecraft.wiki/w/Painting_variant_definition (September 2026).
-import { FIRST_RELEASE, isAtLeast, MC_RELEASES, releaseOrder, supportsDataRegistries, type McRelease } from '@/lib/minecraft';
+import {
+  commandsAcross,
+  dataRange,
+  FIRST_RELEASE,
+  isAtLeast,
+  MC_RELEASES,
+  packRange,
+  releaseOrder,
+  supportsDataRegistries,
+  type McRelease,
+  type VersionedCommand,
+  type VersionRange,
+} from '@/lib/minecraft';
 
 export interface PaintingMeta {
   id: string; // texture: assets/minecraft/textures/painting/<id>.png
@@ -97,6 +109,10 @@ export const LATEST_VERSION = MC_VERSIONS[MC_VERSIONS.length - 1]!;
 
 export const getVersion = (id: string): McVersion => MC_VERSIONS.find((v) => v.id === id) ?? LATEST_VERSION;
 
+/** The versions a pack targets, with each one's paintings. */
+export const getVersionRange = (p: { versionId: string; minVersionId?: string }): VersionRange<McVersion> =>
+  packRange(p, getVersion);
+
 export const getPainting = (id: string): PaintingMeta | undefined => PAINTINGS.find((x) => x.id === id);
 
 /** Custom paintings need the `painting_variant` registry, added in 1.21. */
@@ -117,6 +133,18 @@ export function giveCommand(v: McVersion, variantId: string): string {
   return isAtLeast(v, '1.21.5')
     ? `/give @s minecraft:painting[minecraft:painting/variant="${variantId}"]`
     : `/give @s minecraft:painting[minecraft:entity_data={id:"minecraft:painting",variant:"${variantId}"}]`;
+}
+
+/**
+ * `/give` commands for a custom painting across the part of `range` that can
+ * load it (1.21+): one command, or one each side of 1.21.5 if the range spans it.
+ */
+export function giveCommands(range: VersionRange<McVersion>, variantId: string): VersionedCommand[] {
+  const data = dataRange(range);
+  if (!data) return [];
+  return commandsAcross({ from: getVersion(data.from.id), to: range.to }, '1.21.5', MC_VERSIONS, (v) =>
+    giveCommand(v, variantId),
+  );
 }
 
 /** Vanilla painting texture at 16 px per block (Java Edition, via minecraft.wiki). */

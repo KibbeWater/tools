@@ -9,7 +9,10 @@ export interface Pack {
   id: string;
   name: string;
   description: string;
+  /** Newest Minecraft version the pack targets. */
   versionId: string;
+  /** Oldest version it targets. Missing (or equal) means just `versionId`. */
+  minVersionId?: string;
   iconId: string | null;
   /** Music discs. */
   tracks: Track[];
@@ -28,6 +31,7 @@ export function newPack(name = 'My Pack'): Pack {
     name,
     description: 'Made with mellow llama.',
     versionId: LATEST_RELEASE.id,
+    minVersionId: LATEST_RELEASE.id,
     iconId: null,
     tracks: [],
     art: [],

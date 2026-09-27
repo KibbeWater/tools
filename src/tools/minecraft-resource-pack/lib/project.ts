@@ -1,7 +1,8 @@
 // Music discs in a pack: everything needed to rebuild them, minus the audio
 // bytes themselves (those live in IndexedDB, keyed by `audioId`).
 import type { Pack } from '@/tools/minecraft-pack/lib/pack';
-import { DISCS, getVersion, supportsCustomDiscs, type McVersion } from './discs';
+import type { VersionRange } from '@/lib/minecraft';
+import { DISCS, getDisc, getVersion, supportsCustomDiscs, type McVersion } from './discs';
 
 export interface AudioSettings {
   gainDb: number;
@@ -50,7 +51,7 @@ export interface CustomTrack extends TrackBase {
 export type Track = VanillaTrack | CustomTrack;
 
 /** The parts of a pack the disc helpers read. */
-export type Project = Pick<Pack, 'name' | 'versionId' | 'tracks'>;
+export type Project = Pick<Pack, 'name' | 'versionId' | 'minVersionId' | 'tracks'>;
 
 export { uid } from '@/tools/minecraft-pack/lib/pack';
 
@@ -81,6 +82,23 @@ export function trackProblem(t: Track, version: McVersion): string | null {
   if (!supportsCustomDiscs(version)) return 'Custom discs need Minecraft 1.21 or newer';
   if (!isValidId(t.namespace)) return 'Namespace can only use a–z, 0–9 and _';
   if (!isValidId(t.id)) return 'Id can only use a–z, 0–9 and _';
+  return null;
+}
+
+/**
+ * Why this track won't work on every version the pack targets, or `null` if it
+ * will. Unlike a problem this doesn't stop the build: the pack still works on
+ * the rest of the range.
+ */
+export function trackWarning(t: Track, range: VersionRange<McVersion>): string | null {
+  if (trackProblem(t, range.to)) return null;
+  if (t.kind === 'vanilla') {
+    if (range.from.discs.includes(t.discId)) return null;
+    return `This disc was added in Minecraft ${getDisc(t.discId)?.since ?? range.to.id}, so older versions in the range don't have it`;
+  }
+  if (!supportsCustomDiscs(range.from)) {
+    return 'New discs need Minecraft 1.21 or newer, so versions before that in the range won\'t have it';
+  }
   return null;
 }
 
